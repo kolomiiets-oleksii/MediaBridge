@@ -18,6 +18,12 @@ A Swift bridge for MPMediaLibrary integration.
 - Swift 6.0 / Xcode 16 or later
 - iOS 15.0+, visionOS 1.0+
 
+## Retroactive conformances
+
+MediaBridge declares `Optional: Comparable where Wrapped: Comparable` so optional key paths
+(`\.releaseDate`, `\.name`) can be sorted. The conformance is public and reaches your module on
+import; if another dependency declares the same one, you will need to disambiguate.
+
 ## Installation
 
 Add MediaBridge to your project via Swift Package Manager:
