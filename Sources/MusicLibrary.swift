@@ -399,7 +399,7 @@ extension MusicLibrary {
     @available(*, deprecated, renamed: "songs(matching:comparisonType:)")
     public func fetchSong(
         with predicate: MediaItemPredicateInfo,
-        comparisonType: MPMediaPredicateComparison
+        comparisonType: MPMediaPredicateComparison = .equalTo
     ) async throws -> [MPMediaItem] {
         return try await songs(matching: predicate, comparisonType: comparisonType)
     }
