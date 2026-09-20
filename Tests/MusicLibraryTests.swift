@@ -273,8 +273,6 @@ class MusicLibraryTests {
     }
 
     @Test func testFetch_WhenRequestReturnsDeniedWithoutThrowing() async throws {
-        // A manager that reports denial by return value rather than by throwing
-        // must still stop the fetch.
         let library = MusicLibrary(
             mockAuth: .mock(isAuthorized: false, authStatus: .denied)
         )

@@ -9,9 +9,6 @@ import MediaPlayer
 /// ## Conforming Types
 /// - `MPMediaLibrary`: Apple's default implementation
 /// - Mock implementations for testing
-// Deliberately not `Sendable`: MPMediaLibrary is an Apple-owned class, and conforming
-// it here would be a cross-module Sendable conformance, which Swift 6.0 rejects.
-// AuthorizationManager stores no instance of it — only static members are called.
 public protocol MediaLibraryProtocol {
     /// Requests authorization to access the music library.
     ///

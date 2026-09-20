@@ -19,9 +19,6 @@ public typealias SortKey<Root, Value: Comparable> = KeyPath<Root, Value> & Senda
 
 /// A type alias for a sendable boolean key path used for sorting.
 ///
-/// `Bool` is deliberately not `Comparable`, so boolean sorting uses this alias
-/// rather than ``SortKey``.
-///
 /// - Parameters:
 ///   - Root: The root type that the key path starts from
 public typealias FlagKey<Root> = KeyPath<Root, Bool> & Sendable

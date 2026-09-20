@@ -18,19 +18,19 @@ struct FlagSortingTests {
     ]
 
     @Test func forwardPutsFalseFirst() {
-        let sorted = items.sorted(byFlag: \Item.flag, order: .forward)
+        let sorted = items.sortedByFlagFalseFirst(\Item.flag, order: .forward)
 
         #expect(sorted.map(\.flag) == [false, false, true, true])
     }
 
     @Test func reversePutsTrueFirst() {
-        let sorted = items.sorted(byFlag: \Item.flag, order: .reverse)
+        let sorted = items.sortedByFlagFalseFirst(\Item.flag, order: .reverse)
 
         #expect(sorted.map(\.flag) == [true, true, false, false])
     }
 
     @Test func nilKeyLeavesOrderUntouched() {
-        let sorted = items.sorted(byFlag: nil, order: .forward)
+        let sorted = items.sortedByFlagFalseFirst(nil, order: .forward)
 
         #expect(sorted.map(\.name) == ["a", "b", "c", "d"])
     }

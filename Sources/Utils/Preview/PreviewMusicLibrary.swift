@@ -13,9 +13,6 @@ import MediaPlayer
     /// ```
     /// Use the static factory methods on `MusicLibraryProtocol` (e.g. `.accessAuthorized`,
     /// `.accessDenied`) for common configurations, or construct a custom instance directly.
-    // @unchecked Sendable: MediaPlayer's item types are not Sendable. Every stored
-    // property is a `let` assigned once during initialization and MediaPlayer's item
-    // types are read-only, so no mutation crosses an isolation boundary.
     public final class PreviewMusicLibrary: MusicLibraryProtocol, @unchecked Sendable {
         private let status: MPMediaLibraryAuthorizationStatus
         private let statusAfterRequest: MPMediaLibraryAuthorizationStatus

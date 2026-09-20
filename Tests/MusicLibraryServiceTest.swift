@@ -122,8 +122,6 @@ struct MusicLibraryServiceTest {
         #expect(playlists.isEmpty)
     }
 
-    // Nil query results are reported as empty arrays, not errors
-
     @Test func testFetch_NilItems() async throws {
         let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNilMedia>()
 

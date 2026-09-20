@@ -40,7 +40,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         comparisonType: MPMediaPredicateComparison = .equalTo,
         groupingType: MPMediaGrouping = .title
     ) async throws -> [MPMediaItem] {
-        results(
+        emptyLoggingResults(
             query(type, withFilter: predicate, comparisonType, groupingType).items,
             of: predicate.description
         )
@@ -54,7 +54,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         _ type: MPMediaType,
         groupingType: MPMediaGrouping
     ) async throws -> [MPMediaItem] {
-        results(query(type, groupingType).items, of: "all items grouped by \(groupingType.rawValue)")
+        emptyLoggingResults(query(type, groupingType).items, of: "all items grouped by \(groupingType.rawValue)")
     }
 
     /// Fetches all media collections of a specific type with grouping.
@@ -65,7 +65,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         _ type: MPMediaType,
         groupingType: MPMediaGrouping
     ) async throws -> [MPMediaItemCollection] {
-        results(query(type, groupingType).collections, of: "all collections grouped by \(groupingType.rawValue)")
+        emptyLoggingResults(query(type, groupingType).collections, of: "all collections grouped by \(groupingType.rawValue)")
     }
 
     /// Fetches media item collection matching a predicate with default parameters.
@@ -78,7 +78,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         comparisonType: MPMediaPredicateComparison = .equalTo,
         groupingType: MPMediaGrouping = .title
     ) async throws -> [MPMediaItemCollection] {
-        results(
+        emptyLoggingResults(
             query(type, withFilter: predicate, comparisonType, groupingType).collections,
             of: predicate.description
         )
@@ -89,7 +89,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
     /// Implementation of ``MusicLibraryServiceProtocol/fetchAllPlaylists()`` that retrieves all playlists
     /// using `MPMediaQuery` with `.playlist` grouping and casts the results to `[MPMediaPlaylist]`.
     public func fetchAllPlaylists() async throws -> [MPMediaPlaylist] {
-        playlists(in: playlistQuery(), of: "all playlists")
+        playlistsDiscardingOtherCollections(in: playlistQuery(), of: "all playlists")
     }
 
     /// Fetches playlists matching a predicate.
@@ -104,16 +104,12 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         var query = Q(filterPredicates: [filter])
         query.groupingType = .playlist
 
-        return playlists(in: query, of: predicate.description)
+        return playlistsDiscardingOtherCollections(in: query, of: predicate.description)
     }
 
     // MARK: - Private Helpers
 
-    /// Unwraps a query result, logging when the library returns nothing.
-    ///
-    /// `MPMediaQuery` reports "no matches" as either `nil` or an empty array; both
-    /// arrive here as an empty array, and neither passes unnoticed.
-    private func results<Element>(
+    private func emptyLoggingResults<Element>(
         _ results: [Element]?,
         of description: @escaping @autoclosure () -> String
     ) -> [Element] {
@@ -129,16 +125,15 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         return results
     }
 
-    /// Unwraps a playlist query, logging anything the playlist cast drops.
-    private func playlists(
+    private func playlistsDiscardingOtherCollections(
         in query: Q,
         of description: @escaping @autoclosure () -> String
     ) -> [MPMediaPlaylist] {
-        let collections = results(query.collections, of: description())
+        let collections = emptyLoggingResults(query.collections, of: description())
         let playlists = collections.compactMap { $0 as? MPMediaPlaylist }
 
         if playlists.count != collections.count {
-            log.debug("Skipped \(collections.count - playlists.count) non-playlist collections for \(description())")
+            log.debug("Discarded \(collections.count - playlists.count) non-playlist collections for \(description())")
         }
 
         return playlists

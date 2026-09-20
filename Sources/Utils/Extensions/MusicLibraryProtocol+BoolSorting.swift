@@ -2,10 +2,7 @@ import Foundation
 import MediaPlayer
 
 extension Array {
-    /// Sorts by a boolean key path, `false` first in forward order.
-    ///
-    /// `Bool` is not `Comparable`, so `KeyPathComparator` cannot be used here.
-    func sorted(byFlag key: FlagKey<Element>?, order: SortOrder) -> [Element] {
+    func sortedByFlagFalseFirst(_ key: FlagKey<Element>?, order: SortOrder) -> [Element] {
         guard let key else { return self }
 
         return sorted { lhs, rhs in
@@ -33,7 +30,7 @@ extension MusicLibraryProtocol {
         sortedBy sortingKey: FlagKey<MPMediaItem>?,
         order: SortOrder
     ) async throws -> [MPMediaItem] {
-        try await songs().sorted(byFlag: sortingKey, order: order)
+        try await songs().sortedByFlagFalseFirst(sortingKey, order: order)
     }
 
     /// Fetches all albums sorted by a boolean key path.
@@ -49,7 +46,7 @@ extension MusicLibraryProtocol {
         sortedBy sortingKey: FlagKey<MPMediaItemCollection>?,
         order: SortOrder
     ) async throws -> [MPMediaItemCollection] {
-        try await albums().sorted(byFlag: sortingKey, order: order)
+        try await albums().sortedByFlagFalseFirst(sortingKey, order: order)
     }
 
     /// Fetches all artists sorted by a boolean key path.
@@ -65,7 +62,7 @@ extension MusicLibraryProtocol {
         sortedBy sortingKey: FlagKey<MPMediaItemCollection>?,
         order: SortOrder
     ) async throws -> [MPMediaItemCollection] {
-        try await artists().sorted(byFlag: sortingKey, order: order)
+        try await artists().sortedByFlagFalseFirst(sortingKey, order: order)
     }
 
     /// Fetches all playlists sorted by a boolean key path.
@@ -81,6 +78,6 @@ extension MusicLibraryProtocol {
         sortedBy sortingKey: FlagKey<MPMediaPlaylist>?,
         order: SortOrder
     ) async throws -> [MPMediaPlaylist] {
-        try await playlists().sorted(byFlag: sortingKey, order: order)
+        try await playlists().sortedByFlagFalseFirst(sortingKey, order: order)
     }
 }
