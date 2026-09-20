@@ -30,7 +30,7 @@ Add MediaBridge to your project via Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/oleksiikolomiietssnapp/MediaBridge.git", from: "0.9.3")
+    .package(url: "https://github.com/oleksiikolomiietssnapp/MediaBridge.git", from: "0.10.0")
 ]
 ```
 

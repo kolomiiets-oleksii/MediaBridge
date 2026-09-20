@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.9.3] - 2026-09-20
+## [0.10.0] - 2026-09-20
 
 ### Changed
 - Requires Swift 6.0 / Xcode 16; reverses the `5.9` manifest from 0.9.1, which the sources never compiled under
