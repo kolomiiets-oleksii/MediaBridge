@@ -45,18 +45,26 @@ jobs:
           -verbose
 
   build:
-    name: Build (minimum toolchain)
-    # Pinned: macos-latest (macos-26) no longer ships any Xcode 16, and this job
-    # exists to prove the Swift 6.0 floor in Package.swift still compiles.
-    # When this image is retired, raise the floor or drop the job — do not switch
-    # it to a newer Xcode, which would make it verify nothing.
+    name: Build (Xcode 16)
+    # Pinned: macos-latest (macos-26) ships no Xcode 16 at all, and this job exists
+    # to prove the package still builds on the Xcode 16 family that Package.swift's
+    # 6.0 tools-version invites people to use.
+    #
+    # Xcode 16.4 specifically, not 16.0: the runner's oldest installed iOS runtime is
+    # 18.5, so earlier 16.x versions fail with "iOS 18.0 is not installed" before
+    # compiling anything. Verifying 16.0 exactly would need a multi-GB
+    # `xcodebuild -downloadPlatform iOS` on every run. That leaves 16.0-16.3
+    # (Swift 6.0-6.1) unverified here — see README for the stated floor.
+    #
+    # When this image is retired, raise the floor or drop the job — do not point it
+    # at an Xcode 26, which would make it verify nothing.
     runs-on: macos-15
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Select Xcode 16
-      run: sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
+    - name: Select Xcode 16.4
+      run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
 
     - name: Show Swift version
       run: swift --version
