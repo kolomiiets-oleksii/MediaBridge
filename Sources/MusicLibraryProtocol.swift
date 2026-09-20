@@ -5,7 +5,7 @@ import MediaPlayer
 ///
 /// This protocol provides methods to query and retrieve music library items with flexible filtering and sorting options.
 /// All methods require music library access authorization before use.
-public protocol MusicLibraryProtocol {
+public protocol MusicLibraryProtocol: Sendable {
     /// Returns the current authorization status for music library access.
     ///
     /// Queries the system for the current authorization status without triggering any user prompts or permission dialogs.

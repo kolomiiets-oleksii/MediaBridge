@@ -9,7 +9,7 @@ import MediaPlayer
 /// ## Conforming Types
 /// - `MPMediaLibrary`: Apple's default implementation
 /// - Mock implementations for testing
-public protocol MediaLibraryProtocol {
+public protocol MediaLibraryProtocol: Sendable {
     /// Requests authorization to access the music library.
     ///
     /// Shows the system authorization dialog to the user if not yet authorized.
