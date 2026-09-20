@@ -9,7 +9,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Select Xcode
       run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
@@ -51,7 +51,7 @@ jobs:
       OLDEST_SUPPORTED_XCODE: /Applications/Xcode_16.4.app
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Select oldest supported Xcode
       run: sudo xcode-select -s "$OLDEST_SUPPORTED_XCODE/Contents/Developer"
