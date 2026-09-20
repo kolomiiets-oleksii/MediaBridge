@@ -76,7 +76,7 @@ Both the service layer and authorization manager use production implementations 
 
 ## Documentation
 
-For more information visit [Documentation](https://swiftpackageindex.com/oleksiikolomiietssnapp/MediaBridge/main/documentation/mediabridge).
+For more information visit [Documentation](https://swiftpackageindex.com/kolomiiets-oleksii/MediaBridge/0.9.2/documentation/mediabridge).
 
 ## Contributing
 
