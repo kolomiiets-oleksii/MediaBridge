@@ -13,13 +13,18 @@ A Swift bridge for MPMediaLibrary integration.
 [![Tests](https://github.com/oleksiikolomiietssnapp/MediaBridge/actions/workflows/test.yml/badge.svg)](https://github.com/oleksiikolomiietssnapp/MediaBridge/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-22C55E)](LICENSE)
 
+## Requirements
+
+- Swift 6.0 / Xcode 16 or later
+- iOS 15.0+, visionOS 1.0+
+
 ## Installation
 
 Add MediaBridge to your project via Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/oleksiikolomiietssnapp/MediaBridge.git", from: "0.8.0")
+    .package(url: "https://github.com/oleksiikolomiietssnapp/MediaBridge.git", from: "0.9.3")
 ]
 ```
 
