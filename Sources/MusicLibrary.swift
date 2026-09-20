@@ -372,7 +372,11 @@ public final class MusicLibrary: MusicLibraryProtocol {
 
         guard case .authorized = status else {
             log.debug("Unauthorized with status: \(status.description). Requesting authorization...")
-            try await requestAuthorization()
+            let statusAfterRequest = try await requestAuthorization()
+
+            guard case .authorized = statusAfterRequest else {
+                throw AuthorizationManagerError.unauthorized(statusAfterRequest)
+            }
 
             return
         }

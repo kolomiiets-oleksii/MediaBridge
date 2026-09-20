@@ -271,6 +271,19 @@ class MusicLibraryTests {
             let _ = try await library.playlists()
         }
     }
+
+    @Test func testFetch_WhenRequestReturnsDeniedWithoutThrowing() async throws {
+        // A manager that reports denial by return value rather than by throwing
+        // must still stop the fetch.
+        let library = MusicLibrary(
+            mockAuth: .mock(isAuthorized: false, authStatus: .denied)
+        )
+        #expect(library.authorizationStatus == .denied)
+
+        await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) {
+            let _ = try await library.songs()
+        }
+    }
 }
 
 private extension MusicLibrary {
