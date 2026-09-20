@@ -393,10 +393,27 @@ extension MusicLibraryProtocol {
         try await songs(sortedBy: sortingKey, order: order)
     }
 
+    /// Fetches a specific song with a default comparison type.
+    ///
+    /// Convenience method that fetches a song matching the provided predicate,
+    /// using `.equalTo` as the default comparison type.
+    ///
+    /// - Parameters:
+    ///   - predicate: The predicate to identify the song (e.g., `.persistentID(12345)`, `.artist("Beatles")`)
+    ///   - comparisonType: How to compare the predicate value (defaults to `.equalTo`)
+    /// - Returns: Array of matching songs (typically contains 0 or 1 item)
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
+    ///
+    /// ## Example
+    /// ```swift
+    /// @Environment(\.library) var library
+    /// // Using default .equalTo comparison
+    /// let songs = try await library.fetchSong(with: .persistentID(12345))
+    /// ```
     @available(*, deprecated, renamed: "songs(matching:comparisonType:)")
     public func fetchSong(
         with predicate: MediaItemPredicateInfo,
-        comparisonType: MPMediaPredicateComparison
+        comparisonType: MPMediaPredicateComparison = .equalTo
     ) async throws -> [MPMediaItem] {
         try await songs(matching: predicate, comparisonType: comparisonType)
     }
@@ -412,7 +429,7 @@ extension MusicLibraryProtocol {
     }
 }
 
-extension MusicLibraryProtocol where Self == MusicLibrary {
+extension MusicLibraryProtocol {
     /// Fetches all songs without sorting.
     ///
     /// Convenience method that fetches all songs with default behavior (unsorted, forward order).
@@ -498,30 +515,5 @@ extension MusicLibraryProtocol where Self == MusicLibrary {
     /// ```
     public func fetchSongs() async throws -> [MPMediaItem] {
         return try await songs()
-    }
-
-    @available(*, deprecated, renamed: "songs(matching:comparisonType:)")
-    /// Fetches a specific song with a default comparison type.
-    ///
-    /// Convenience method that fetches a song matching the provided predicate,
-    /// using `.equalTo` as the default comparison type.
-    ///
-    /// - Parameters:
-    ///   - predicate: The predicate to identify the song (e.g., `.persistentID(12345)`, `.artist("Beatles")`)
-    ///   - comparisonType: How to compare the predicate value (defaults to `.equalTo`)
-    /// - Returns: Array of matching songs (typically contains 0 or 1 item)
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
-    ///
-    /// ## Example
-    /// ```swift
-    /// @Environment(\.library) var library
-    /// // Using default .equalTo comparison
-    /// let songs = try await library.fetchSong(with: .persistentID(12345))
-    /// ```
-    public func fetchSong(
-        with predicate: MediaItemPredicateInfo,
-        comparisonType: MPMediaPredicateComparison = .equalTo
-    ) async throws -> [MPMediaItem] {
-        return try await songs(matching: predicate, comparisonType: comparisonType)
     }
 }
