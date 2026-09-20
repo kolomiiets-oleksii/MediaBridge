@@ -76,52 +76,47 @@ struct MusicLibraryServiceTest {
         #expect(songs.count == 2)
     }
 
-    // Failing
+    // Nil query results are reported as empty arrays, not errors
 
     @Test func testFetch_NilItems() async throws {
         let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNilMedia>()
 
-        let predicateInfo = MediaItemPredicateInfo.title("Title")
-        let expectedError = MusicLibraryService<MockMediaQueryWithNilMedia>.E.noItemFound(predicateInfo)
+        let items = try await service.fetch(
+            .music,
+            with: .title("Title"),
+            comparisonType: .equalTo,
+            groupingType: .album
+        )
 
-        await #expect(throws: expectedError) {
-            let _ = try await service.fetch(
-                .music,
-                with: predicateInfo,
-                comparisonType: .equalTo,
-                groupingType: .album
-            )
-        }
+        #expect(items.isEmpty)
     }
 
     @Test func testFetchAll_NilItems() async throws {
         let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNilMedia>()
 
-        let expectedError = MusicLibraryService<MockMediaQueryWithNilMedia>.E.noItemsFound
+        let items = try await service.fetchAll(.music, groupingType: .album)
 
-        await #expect(throws: expectedError) {
-            let _ = try await service.fetchAll(.music, groupingType: .album)
-        }
+        #expect(items.isEmpty)
     }
 
     @Test func testFetchAll_Albums_NilItems() async throws {
         let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNilMedia>()
 
-        let expectedError = MusicLibraryService<MockMediaQueryWithNilMedia>.E.noCollectionsFound
+        let collections = try await service.fetchAllCollections(.music, groupingType: .album)
 
-        await #expect(throws: expectedError) {
-            let _ = try await service.fetchAllCollections(.music, groupingType: .album)
-        }
+        #expect(collections.isEmpty)
     }
 
     @Test func testFetch_Album_NilItems() async throws {
         let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNilMedia>()
 
-        let predicateInfo = MediaItemPredicateInfo.title("Title")
-        let expectedError = MusicLibraryService<MockMediaQueryWithNilMedia>.E.noCollectionFound(predicateInfo)
+        let collections = try await service.fetchCollections(
+            .music,
+            with: .title("Title"),
+            comparisonType: .contains,
+            groupingType: .album
+        )
 
-        await #expect(throws: expectedError) {
-            let _ = try await service.fetchCollections(.music, with: .title("Title"), comparisonType: .contains, groupingType: .album)
-        }
+        #expect(collections.isEmpty)
     }
 }

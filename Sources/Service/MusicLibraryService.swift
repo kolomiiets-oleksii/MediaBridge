@@ -41,10 +41,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         comparisonType: MPMediaPredicateComparison = .equalTo,
         groupingType: MPMediaGrouping = .title
     ) async throws -> [MPMediaItem] {
-        guard let items = query(type, withFilter: predicate, comparisonType, groupingType).items else {
-            throw E.noItemFound(predicate)
-        }
-        return items
+        query(type, withFilter: predicate, comparisonType, groupingType).items ?? []
     }
 
     /// Fetches all media items of a specific type with grouping.
@@ -55,10 +52,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         _ type: MPMediaType,
         groupingType: MPMediaGrouping
     ) async throws -> [MPMediaItem] {
-        guard let items = query(type, groupingType).items else {
-            throw E.noItemsFound
-        }
-        return items
+        query(type, groupingType).items ?? []
     }
 
     /// Fetches all media collections of a specific type with grouping.
@@ -69,10 +63,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         _ type: MPMediaType,
         groupingType: MPMediaGrouping
     ) async throws -> [MPMediaItemCollection] {
-        guard let collections = query(type, groupingType).collections else {
-            throw E.noCollectionsFound
-        }
-        return collections
+        query(type, groupingType).collections ?? []
     }
 
     /// Fetches media item collection matching a predicate with default parameters.
@@ -85,10 +76,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         comparisonType: MPMediaPredicateComparison = .equalTo,
         groupingType: MPMediaGrouping = .title
     ) async throws -> [MPMediaItemCollection] {
-        guard let collections = query(type, withFilter: predicate, comparisonType, groupingType).collections else {
-            throw E.noCollectionFound(predicate)
-        }
-        return collections
+        query(type, withFilter: predicate, comparisonType, groupingType).collections ?? []
     }
 
     /// Fetches all playlists from the music library.
@@ -96,10 +84,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
     /// Implementation of ``MusicLibraryServiceProtocol/fetchAllPlaylists()`` that retrieves all playlists
     /// using `MPMediaQuery` with `.playlist` grouping and casts the results to `[MPMediaPlaylist]`.
     public func fetchAllPlaylists() async throws -> [MPMediaPlaylist] {
-        guard let collections = playlistQuery().collections else {
-            throw E.noCollectionsFound
-        }
-        return collections.compactMap { $0 as? MPMediaPlaylist }
+        (playlistQuery().collections ?? []).compactMap { $0 as? MPMediaPlaylist }
     }
 
     /// Fetches playlists matching a predicate.
@@ -113,10 +98,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         let filter = predicate.predicate(using: comparisonType)
         var query = Q(filterPredicates: [filter])
         query.groupingType = .playlist
-        guard let collections = query.collections else {
-            throw E.noCollectionFound(predicate)
-        }
-        return collections.compactMap { $0 as? MPMediaPlaylist }
+        return (query.collections ?? []).compactMap { $0 as? MPMediaPlaylist }
     }
 
     // MARK: - Private Helpers
