@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-20
+
+### Changed
+- Requires Swift 6.0 / Xcode 16; reverses the `5.9` manifest from 0.9.1, which the sources never compiled under
+- `songs()`, `albums()`, `artists()`, `playlists()` are available to every `MusicLibraryProtocol` conformer, not just `MusicLibrary`
+- Queries with no results return an empty array instead of throwing, and log at `info`
+- `MusicLibraryProtocol`, `AuthorizationManagerProtocol`, and `MusicLibraryServiceProtocol` require `Sendable`
+- Compiles in the Swift 6 language mode (`swiftLanguageModes: [.v6]`), so data-race safety is enforced at compile time
+- Log subsystem uses the host app's bundle identifier
+
+### Added
+- `FlagKey` sorting overloads for `Bool` key paths, e.g. `songs(sortedBy: \.isExplicitItem, order:)`
+- `PreviewMusicLibrary.init` is public; `.preview()` accepts `filteredArtists` and `filteredPlaylists`
+
+### Fixed
+- `.contains` is no longer applied to the media-type predicate, which accepts only `.equalTo`
+- `Optional` comparison is a total order; `nil` sorts first, and any `Comparable` wrapped type is supported
+- Authorization result is checked after a request instead of relying on the manager throwing
+- `MusicLibrary.fetchSong(with:)` defaults `comparisonType` to `.equalTo`, matching the protocol extension it was shadowing
+- Deprecation attributes no longer sit above doc comments, so DocC keeps the documentation for `fetchSongs()` and `fetchSong(with:)`
+
+### Removed
+- `Bool` and `MPMediaType` `Comparable` conformances; use the `FlagKey` overloads for booleans
+- `MusicLibraryServiceError` and `MusicLibraryServiceProtocol.E` — the service no longer throws for empty results, so `catch` clauses for these cases can be deleted
+
+## [0.9.2] - 2026-03-08
+
+### Fixed
+- Removed a trailing comma in `Package.swift` that Swift 5.9 toolchains could not parse
+
 ## [0.9.1] - 2026-03-08
 
 ### Fixed

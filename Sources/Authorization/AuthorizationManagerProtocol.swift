@@ -15,7 +15,7 @@ import MediaPlayer
 ///
 /// The protocol uses an associated type `T` that conforms to `MediaLibraryProtocol` to abstract the underlying
 /// media library implementation, allowing for easy testing and dependency injection.
-public protocol AuthorizationManagerProtocol {
+public protocol AuthorizationManagerProtocol: Sendable {
     associatedtype T: MediaLibraryProtocol
 
     /// Requests authorization to access the music library.

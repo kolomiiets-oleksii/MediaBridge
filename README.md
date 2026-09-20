@@ -13,13 +13,24 @@ A Swift bridge for MPMediaLibrary integration.
 [![Tests](https://github.com/oleksiikolomiietssnapp/MediaBridge/actions/workflows/test.yml/badge.svg)](https://github.com/oleksiikolomiietssnapp/MediaBridge/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-22C55E)](LICENSE)
 
+## Requirements
+
+- Swift 6.0 / Xcode 16 or later (CI verifies Xcode 16.4; 16.0-16.3 are expected to work but are not built on every change)
+- iOS 15.0+, visionOS 1.0+
+
+## Retroactive conformances
+
+MediaBridge declares `Optional: Comparable where Wrapped: Comparable` so optional key paths
+(`\.releaseDate`, `\.name`) can be sorted. The conformance is public and reaches your module on
+import; if another dependency declares the same one, you will need to disambiguate.
+
 ## Installation
 
 Add MediaBridge to your project via Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/oleksiikolomiietssnapp/MediaBridge.git", from: "0.8.0")
+    .package(url: "https://github.com/oleksiikolomiietssnapp/MediaBridge.git", from: "0.10.0")
 ]
 ```
 

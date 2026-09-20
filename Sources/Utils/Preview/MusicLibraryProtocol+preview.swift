@@ -26,7 +26,9 @@ import MediaPlayer
             fetchedMedia: [MPMediaItem] = [],
             fetchedSongs: [MPMediaItem] = [],
             filteredSongs: [MPMediaItem] = [],
-            filteredAlbums: [MPMediaItemCollection] = []
+            filteredAlbums: [MPMediaItemCollection] = [],
+            filteredArtists: [MPMediaItemCollection] = [],
+            filteredPlaylists: [MPMediaPlaylist] = []
         ) -> PreviewMusicLibrary {
             PreviewMusicLibrary(
                 status: authStatus,
@@ -35,7 +37,9 @@ import MediaPlayer
                 fetchedMedia: fetchedMedia,
                 fetchedSongs: fetchedSongs,
                 filteredSongs: filteredSongs,
-                filteredAlbums: filteredAlbums
+                filteredAlbums: filteredAlbums,
+                filteredArtists: filteredArtists,
+                filteredPlaylists: filteredPlaylists
             )
         }
     }

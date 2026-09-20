@@ -13,7 +13,7 @@ import MediaPlayer
     /// ```
     /// Use the static factory methods on `MusicLibraryProtocol` (e.g. `.accessAuthorized`,
     /// `.accessDenied`) for common configurations, or construct a custom instance directly.
-    public final class PreviewMusicLibrary: MusicLibraryProtocol {
+    public final class PreviewMusicLibrary: MusicLibraryProtocol, @unchecked Sendable {
         private let status: MPMediaLibraryAuthorizationStatus
         private let statusAfterRequest: MPMediaLibraryAuthorizationStatus
         private let fetchedAllMedia: [MPMediaItem]
@@ -24,7 +24,7 @@ import MediaPlayer
         private let filteredArtists: [MPMediaItemCollection]
         private let filteredPlaylists: [MPMediaPlaylist]
 
-        init(
+        public init(
             status: MPMediaLibraryAuthorizationStatus,
             statusAfterRequest: MPMediaLibraryAuthorizationStatus,
             fetchedAllMedia: [MPMediaItem],

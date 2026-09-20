@@ -29,7 +29,6 @@ import MediaPlayer
 /// let songs = try await service.fetchAll(.music, groupingType: .album)
 /// ```
 public protocol MusicLibraryServiceProtocol: Sendable {
-    associatedtype E: Error
     associatedtype Q: MediaQueryProtocol
 
     // MARK: - Media Items

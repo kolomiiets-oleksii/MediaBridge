@@ -2,6 +2,6 @@ import Foundation
 import OSLog
 
 internal let log: Logger = Logger(
-    subsystem: "media-bridge",
-    category: "default"
+    subsystem: Bundle.main.bundleIdentifier ?? "media-bridge",
+    category: "MediaBridge"
 )

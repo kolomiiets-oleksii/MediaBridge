@@ -128,8 +128,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - type: The type of media to fetch (typically `.music`)
     ///   - groupingType: How to group the returned items (`.title`, `.album`, `.artist`, etc.)
     /// - Returns: Array of all media items matching the specified type
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized,
-    ///   or ``MusicLibraryServiceError/noItemsFound`` if no items are found
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
     public func fetchAll(_ type: MPMediaType, groupingType: MPMediaGrouping) async throws -> [MPMediaItem] {
         try await checkIfAuthorized()
         return try await service.fetchAll(type, groupingType: groupingType)
@@ -147,8 +146,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     ///   - groupingType: How to group the returned items
     /// - Returns: Array of media items matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized,
-    ///   or ``MusicLibraryServiceError/noItemFound(_:)`` if no matching items are found
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
     public func mediaItems(
         ofType type: MPMediaType,
         matching predicate: MediaItemPredicateInfo,
@@ -171,8 +169,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     ///   - groupingType: How to group the returned collections (typically `.album` or `.albumArtist`)
     /// - Returns: Array of media item collections matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized,
-    ///   or ``MusicLibraryServiceError/noCollectionFound(_:)`` if no matching collections are found
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
     public func mediaItemCollections(
         ofType type: MPMediaType,
         matching predicate: MediaItemPredicateInfo,
@@ -189,46 +186,18 @@ public final class MusicLibrary: MusicLibraryProtocol {
         sortedBy sortingKey: SortKey<MPMediaItem, T>?,
         order: SortOrder
     ) async throws -> [MPMediaItem] {
-        #if DEBUG
-            let start = Date()
-            log.debug("Started fetching and sorting")
-        #endif
-
-        let songs = try await fetchAll(.music, groupingType: .title)
-        #if DEBUG
-            log.debug("Fetched \(songs.count) songs in \(Date.now.timeIntervalSince(start)) seconds")
-        #endif
-
-        if let sortingKey {
-            #if DEBUG
-                let startSorting = Date()
-            #endif
-
-            let sorted = songs.sorted(using: KeyPathComparator(sortingKey, order: order))
-
-            #if DEBUG
-                log.debug("Sorted \(songs.count) songs in \(Date.now.timeIntervalSince(startSorting)) seconds")
-                log.debug("Fetched and sorted \(songs.count) songs in \(Date.now.timeIntervalSince(start)) seconds")
-            #endif
-            return sorted
+        try await fetchSorted("songs", sortedBy: sortingKey, order: order) {
+            try await self.service.fetchAll(.music, groupingType: .title)
         }
-
-        return songs
     }
 
     public func albums<T: Comparable>(
         sortedBy sortingKey: SortKey<MPMediaItemCollection, T>?,
         order: SortOrder
     ) async throws -> [MPMediaItemCollection] {
-        try await checkIfAuthorized()
-        let albums = try await service.fetchAllCollections(.music, groupingType: .album)
-
-        if let sortingKey {
-            let sorted = albums.sorted(using: KeyPathComparator(sortingKey, order: order))
-            return sorted
+        try await fetchSorted("albums", sortedBy: sortingKey, order: order) {
+            try await self.service.fetchAllCollections(.music, groupingType: .album)
         }
-
-        return albums
     }
 
     public func songs(
@@ -249,8 +218,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     ///   - groupingType: How to group the returned collections (typically `.album` or `.albumArtist`)
     /// - Returns: Array of album collections matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized,
-    ///   or ``MusicLibraryServiceError/noCollectionFound(_:)`` if no matching albums are found
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
     ///
     /// ## Example
     /// ```swift
@@ -273,15 +241,9 @@ public final class MusicLibrary: MusicLibraryProtocol {
         sortedBy sortingKey: SortKey<MPMediaItemCollection, T>?,
         order: SortOrder
     ) async throws -> [MPMediaItemCollection] {
-        try await checkIfAuthorized()
-        let artists = try await service.fetchAllCollections(.music, groupingType: .artist)
-
-        if let sortingKey {
-            let sorted = artists.sorted(using: KeyPathComparator(sortingKey, order: order))
-            return sorted
+        try await fetchSorted("artists", sortedBy: sortingKey, order: order) {
+            try await self.service.fetchAllCollections(.music, groupingType: .artist)
         }
-
-        return artists
     }
 
     /// Fetches artist collections matching a predicate.
@@ -295,8 +257,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     ///   - groupingType: How to group the returned collections (typically `.artist` or `.albumArtist`)
     /// - Returns: Array of artist collections matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized,
-    ///   or ``MusicLibraryServiceError/noCollectionFound(_:)`` if no matching artists are found
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
     ///
     /// ## Example
     /// ```swift
@@ -319,14 +280,9 @@ public final class MusicLibrary: MusicLibraryProtocol {
         sortedBy sortingKey: SortKey<MPMediaPlaylist, T>?,
         order: SortOrder
     ) async throws -> [MPMediaPlaylist] {
-        try await checkIfAuthorized()
-        let playlists = try await service.fetchAllPlaylists()
-
-        if let sortingKey {
-            return playlists.sorted(using: KeyPathComparator(sortingKey, order: order))
+        try await fetchSorted("playlists", sortedBy: sortingKey, order: order) {
+            try await self.service.fetchAllPlaylists()
         }
-
-        return playlists
     }
 
     /// Fetches playlists matching a predicate.
@@ -342,8 +298,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - predicate: The predicate to filter playlists (e.g., `.playlistName("Favorites")`, `.playlistID(123)`)
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     /// - Returns: Array of playlists matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized,
-    ///   or ``MusicLibraryServiceError/noCollectionFound(_:)`` if no matching playlists are found
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
     ///
     /// ## Example
     /// ```swift
@@ -367,12 +322,54 @@ public final class MusicLibrary: MusicLibraryProtocol {
 
     // MARK: - Private methods
 
+    /// Checks authorization, runs the given fetch, and applies the optional sort key.
+    ///
+    /// Shared by every `sortedBy:order:` method so authorization, sorting, and the
+    /// debug timing logs behave identically across songs, albums, artists, and playlists.
+    private func fetchSorted<Element, Value: Comparable>(
+        _ label: String,
+        sortedBy sortingKey: SortKey<Element, Value>?,
+        order: SortOrder,
+        fetch: () async throws -> [Element]
+    ) async throws -> [Element] {
+        #if DEBUG
+            let start = Date()
+            log.debug("Started fetching and sorting \(label)")
+        #endif
+
+        try await checkIfAuthorized()
+        let elements = try await fetch()
+
+        #if DEBUG
+            log.debug("Fetched \(elements.count) \(label) in \(Date.now.timeIntervalSince(start)) seconds")
+        #endif
+
+        guard let sortingKey else { return elements }
+
+        #if DEBUG
+            let startSorting = Date()
+        #endif
+
+        let sorted = elements.sorted(using: KeyPathComparator(sortingKey, order: order))
+
+        #if DEBUG
+            log.debug("Sorted \(elements.count) \(label) in \(Date.now.timeIntervalSince(startSorting)) seconds")
+            log.debug("Fetched and sorted \(elements.count) \(label) in \(Date.now.timeIntervalSince(start)) seconds")
+        #endif
+
+        return sorted
+    }
+
     private func checkIfAuthorized() async throws {
         let status = authorizationStatus
 
         guard case .authorized = status else {
             log.debug("Unauthorized with status: \(status.description). Requesting authorization...")
-            try await requestAuthorization()
+            let statusAfterRequest = try await requestAuthorization()
+
+            guard case .authorized = statusAfterRequest else {
+                throw AuthorizationManagerError.unauthorized(statusAfterRequest)
+            }
 
             return
         }
@@ -402,7 +399,7 @@ extension MusicLibrary {
     @available(*, deprecated, renamed: "songs(matching:comparisonType:)")
     public func fetchSong(
         with predicate: MediaItemPredicateInfo,
-        comparisonType: MPMediaPredicateComparison,
+        comparisonType: MPMediaPredicateComparison = .equalTo
     ) async throws -> [MPMediaItem] {
         return try await songs(matching: predicate, comparisonType: comparisonType)
     }

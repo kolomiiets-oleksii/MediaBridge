@@ -16,3 +16,9 @@ import MediaPlayer
 ///   - Root: The root type that the key path starts from
 ///   - Value: The comparable value type that the key path points to
 public typealias SortKey<Root, Value: Comparable> = KeyPath<Root, Value> & Sendable
+
+/// A type alias for a sendable boolean key path used for sorting.
+///
+/// - Parameters:
+///   - Root: The root type that the key path starts from
+public typealias FlagKey<Root> = KeyPath<Root, Bool> & Sendable
