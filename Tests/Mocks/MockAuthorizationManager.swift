@@ -9,14 +9,14 @@ final class MockAuthorizationManager: AuthorizationManagerProtocol {
         self.authError = authError
     }
 
-    var isAuthorized: Bool
-    var authError: MockAuthError?
+    let isAuthorized: Bool
+    let authError: MockAuthError?
     func authorize() async throws -> MPMediaLibraryAuthorizationStatus {
         guard let authError else { return isAuthorized ? .authorized : .denied }
         throw authError
     }
 
-    var authStatus: MPMediaLibraryAuthorizationStatus
+    let authStatus: MPMediaLibraryAuthorizationStatus
     func status() -> MPMediaLibraryAuthorizationStatus { authStatus }
 
     enum MockAuthError: Error {

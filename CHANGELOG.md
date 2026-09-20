@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-09-20
+
+### Changed
+- Requires Swift 6.0 / Xcode 16; reverses the `5.9` manifest from 0.9.1, which the sources never compiled under
+- `songs()`, `albums()`, `artists()`, `playlists()` are available to every `MusicLibraryProtocol` conformer, not just `MusicLibrary`
+- Queries with no results return an empty array instead of throwing
+- `MusicLibraryProtocol`, `AuthorizationManagerProtocol`, `MusicLibraryServiceProtocol`, and `MediaLibraryProtocol` require `Sendable`
+- Log subsystem uses the host app's bundle identifier
+
+### Added
+- `FlagKey` sorting overloads for `Bool` key paths, e.g. `songs(sortedBy: \.isExplicitItem, order:)`
+- `PreviewMusicLibrary.init` is public; `.preview()` accepts `filteredArtists` and `filteredPlaylists`
+
+### Fixed
+- `.contains` is no longer applied to the media-type predicate, which accepts only `.equalTo`
+- `Optional` comparison is a total order; `nil` sorts first, and any `Comparable` wrapped type is supported
+- Authorization result is checked after a request instead of relying on the manager throwing
+
+### Removed
+- `Bool` and `MPMediaType` `Comparable` conformances; use the `FlagKey` overloads for booleans
+
+### Deprecated
+- `MusicLibraryServiceError.noItemsFound`, `.noCollectionsFound`, `.noItemFound(_:)`, `.noCollectionFound(_:)` — no longer thrown
+
 ## [0.9.1] - 2026-03-08
 
 ### Fixed
