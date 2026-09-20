@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Requires Swift 6.0 / Xcode 16; reverses the `5.9` manifest from 0.9.1, which the sources never compiled under
 - `songs()`, `albums()`, `artists()`, `playlists()` are available to every `MusicLibraryProtocol` conformer, not just `MusicLibrary`
 - Queries with no results return an empty array instead of throwing, and log at `info`
-- `MusicLibraryProtocol`, `AuthorizationManagerProtocol`, `MusicLibraryServiceProtocol`, and `MediaLibraryProtocol` require `Sendable`
+- `MusicLibraryProtocol`, `AuthorizationManagerProtocol`, and `MusicLibraryServiceProtocol` require `Sendable`
 - Compiles in the Swift 6 language mode (`swiftLanguageModes: [.v6]`), so data-race safety is enforced at compile time
 - Log subsystem uses the host app's bundle identifier
 
