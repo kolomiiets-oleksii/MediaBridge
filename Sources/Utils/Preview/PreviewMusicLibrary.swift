@@ -30,7 +30,7 @@ import MediaPlayer
         private let filteredArtists: [MPMediaItemCollection]
         private let filteredPlaylists: [MPMediaPlaylist]
 
-        init(
+        public init(
             status: MPMediaLibraryAuthorizationStatus,
             statusAfterRequest: MPMediaLibraryAuthorizationStatus,
             fetchedAllMedia: [MPMediaItem],

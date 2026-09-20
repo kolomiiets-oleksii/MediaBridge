@@ -499,7 +499,7 @@ extension MusicLibraryProtocol {
     }
 
     // MARK: - Deprecated
-    @available(*, deprecated, renamed: "songs()")
+
     /// Fetches all songs without sorting.
     ///
     /// Convenience method that fetches all songs with default behavior (unsorted, forward order).
@@ -513,6 +513,7 @@ extension MusicLibraryProtocol {
     /// @Environment(\.library) var library
     /// let allSongs = try await library.fetchSongs()
     /// ```
+    @available(*, deprecated, renamed: "songs()")
     public func fetchSongs() async throws -> [MPMediaItem] {
         return try await songs()
     }

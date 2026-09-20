@@ -76,6 +76,52 @@ struct MusicLibraryServiceTest {
         #expect(songs.count == 2)
     }
 
+    // MARK: - Playlists
+
+    @Test func testFetchAllPlaylists_NilCollections() async throws {
+        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNilMedia>()
+
+        let playlists = try await service.fetchAllPlaylists()
+
+        #expect(playlists.isEmpty)
+    }
+
+    @Test func testFetchAllPlaylists_SkipsNonPlaylistCollections() async throws {
+        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNonPlaylistCollections>()
+
+        let playlists = try await service.fetchAllPlaylists()
+
+        #expect(playlists.isEmpty)
+    }
+
+    @Test func testFetchAllPlaylists_UsesPlaylistGrouping() async throws {
+        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryCapturingPredicates>()
+
+        _ = try await service.fetchAllPlaylists()
+
+        #expect(MockMediaQueryCapturingPredicates.lastGroupingType == .playlist)
+        #expect(MockMediaQueryCapturingPredicates.lastFilterPredicates == nil)
+    }
+
+    @Test func testFetchPlaylists_Matching_PassesPredicateAndGrouping() async throws {
+        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryCapturingPredicates>()
+
+        _ = try await service.fetchPlaylists(with: .playlistName("Chill"), comparisonType: .contains)
+
+        let namePredicate = MockMediaQueryCapturingPredicates.propertyPredicate(forProperty: MPMediaPlaylistPropertyName)
+
+        #expect(namePredicate?.comparisonType == .contains)
+        #expect(MockMediaQueryCapturingPredicates.lastGroupingType == .playlist)
+    }
+
+    @Test func testFetchPlaylists_Matching_NilCollections() async throws {
+        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNilMedia>()
+
+        let playlists = try await service.fetchPlaylists(with: .playlistName("Chill"), comparisonType: .equalTo)
+
+        #expect(playlists.isEmpty)
+    }
+
     // Nil query results are reported as empty arrays, not errors
 
     @Test func testFetch_NilItems() async throws {

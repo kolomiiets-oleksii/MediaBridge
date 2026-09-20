@@ -43,7 +43,11 @@ class MockMediaQueryCapturingPredicates: MediaQueryProtocol {
 
     var items: [MPMediaItem]?
     var collections: [MPMediaItemCollection]?
-    var groupingType: MPMediaGrouping
+    var groupingType: MPMediaGrouping {
+        didSet { Self.lastGroupingType = groupingType }
+    }
+
+    nonisolated(unsafe) static var lastGroupingType: MPMediaGrouping?
 
     required init(filterPredicates: Set<MPMediaPredicate>? = nil) {
         Self.lastFilterPredicates = filterPredicates
@@ -56,5 +60,18 @@ class MockMediaQueryCapturingPredicates: MediaQueryProtocol {
         lastFilterPredicates?
             .compactMap { $0 as? MPMediaPropertyPredicate }
             .first { $0.property == property }
+    }
+}
+
+/// Returns collections that are not playlists, to exercise the playlist filtering.
+class MockMediaQueryWithNonPlaylistCollections: MediaQueryProtocol {
+    var items: [MPMediaItem]?
+    var collections: [MPMediaItemCollection]?
+    var groupingType: MPMediaGrouping
+
+    required init(filterPredicates: Set<MPMediaPredicate>? = nil) {
+        items = []
+        collections = [.mock, .mock]
+        groupingType = .title
     }
 }
