@@ -6,55 +6,54 @@ on:
 
 jobs:
   test:
-    runs-on: macos-latest
+    name: Test (Swift ${{ matrix.swift }}, Xcode ${{ matrix.xcode }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - swift: '6.1'
+            xcode: '16.4'
+            runner: macos-15
+            ios: '18.5'
+            device: iPhone 16
+          - swift: '6.2'
+            xcode: '26.0.1'
+            runner: macos-15
+            ios: '26.0'
+            device: iPhone 16
+          - swift: '6.3'
+            xcode: '26.6'
+            runner: macos-26
+            ios: '26.5'
+            device: iPhone 17
 
     steps:
     - uses: actions/checkout@v5
 
-    - name: Select Xcode
-      run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+    - name: Select Xcode ${{ matrix.xcode }}
+      run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
 
-    - name: List available iOS runtimes
-      run: xcrun simctl list runtimes
+    - name: Show Swift version
+      run: swift --version
 
-    - name: Create and boot iOS Simulator
-      run: |
-        # Get the latest iOS runtime available
-        RUNTIME=$(xcrun simctl list runtimes | grep "iOS" | tail -1 | grep -oE "com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+")
-        echo "Using runtime: $RUNTIME"
-
-        # Create simulator
-        SIMULATOR_ID=$(xcrun simctl create test-device com.apple.CoreSimulator.SimDeviceType.iPhone-15 "$RUNTIME" 2>&1 | tail -1)
-        echo "Created simulator: $SIMULATOR_ID"
-
-        # Boot it
-        xcrun simctl boot "$SIMULATOR_ID"
-
-        # Wait for it to boot
-        sleep 5
-
-        echo "SIMULATOR_ID=$SIMULATOR_ID" >> $GITHUB_ENV
-
-    - name: Run tests with iOS Simulator
+    - name: Run tests
       run: |
         xcodebuild test \
           -scheme MediaBridge \
-          -destination "id=${{ env.SIMULATOR_ID }}" \
+          -destination 'platform=iOS Simulator,OS=${{ matrix.ios }},name=${{ matrix.device }}' \
           -derivedDataPath .build \
-          -enableCodeCoverage YES \
-          -verbose
+          -enableCodeCoverage YES
 
-  build-oldest-supported-xcode:
-    name: Build (Xcode 16.4)
+  build-swift-6-0-floor:
+    name: Build (Swift 6.0, Xcode 16.0)
     runs-on: macos-15
-    env:
-      OLDEST_SUPPORTED_XCODE: /Applications/Xcode_16.4.app
 
     steps:
     - uses: actions/checkout@v5
 
-    - name: Select oldest supported Xcode
-      run: sudo xcode-select -s "$OLDEST_SUPPORTED_XCODE/Contents/Developer"
+    - name: Select Xcode 16.0
+      run: sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
 
     - name: Show Swift version
       run: swift --version
@@ -64,3 +63,21 @@ jobs:
         xcodebuild build \
           -scheme MediaBridge \
           -destination 'generic/platform=iOS'
+
+  test-xcode-27-preview:
+    name: Test (Xcode 27 preview)
+    runs-on: xcode-27
+    continue-on-error: true
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Show Swift version
+      run: swift --version
+
+    - name: Run tests
+      run: |
+        xcodebuild test \
+          -scheme MediaBridge \
+          -destination 'platform=iOS Simulator,OS=27.0,name=iPhone 17' \
+          -derivedDataPath .build
