@@ -46,7 +46,11 @@ jobs:
 
   build:
     name: Build (minimum toolchain)
-    runs-on: macos-latest
+    # Pinned: macos-latest (macos-26) no longer ships any Xcode 16, and this job
+    # exists to prove the Swift 6.0 floor in Package.swift still compiles.
+    # When this image is retired, raise the floor or drop the job — do not switch
+    # it to a newer Xcode, which would make it verify nothing.
+    runs-on: macos-15
 
     steps:
     - uses: actions/checkout@v4
