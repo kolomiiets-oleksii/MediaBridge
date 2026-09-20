@@ -138,7 +138,9 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         _ groupingType: MPMediaGrouping
     ) -> Q {
         let typePredicate = MediaItemPredicateInfo.mediaType(type)
-        let typeFilter = typePredicate.predicate(using: comparisonType)
+        // The media type is numeric; only .equalTo is valid for it. The caller's
+        // comparison type applies to their predicate alone.
+        let typeFilter = typePredicate.predicate()
         let additionalFilter = predicate.predicate(using: comparisonType)
 
         return prepareQuery(with: [typeFilter, additionalFilter], groupingType: groupingType)

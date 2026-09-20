@@ -1,3 +1,4 @@
+import MediaPlayer
 import Testing
 
 @testable import MediaBridge
@@ -30,6 +31,23 @@ struct MusicLibraryServiceTest {
         let albums = try await service.fetchCollections(.music, with: .title("Title"), comparisonType: .contains, groupingType: .album)
 
         #expect(albums.count == 2)
+    }
+
+    @Test func testFetch_MediaTypePredicateAlwaysUsesEqualTo() async throws {
+        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryCapturingPredicates>()
+
+        _ = try await service.fetch(
+            .music,
+            with: .artist("Taylor Swift"),
+            comparisonType: .contains,
+            groupingType: .album
+        )
+
+        let typePredicate = MockMediaQueryCapturingPredicates.propertyPredicate(forProperty: MPMediaItemPropertyMediaType)
+        let artistPredicate = MockMediaQueryCapturingPredicates.propertyPredicate(forProperty: MPMediaItemPropertyArtist)
+
+        #expect(typePredicate?.comparisonType == .equalTo)
+        #expect(artistPredicate?.comparisonType == .contains)
     }
 
     @Test func testFetch_NoItems() async throws {

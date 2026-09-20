@@ -37,3 +37,24 @@ class MockMediaQueryWithNilMedia: MediaQueryProtocol {
         groupingType = .title
     }
 }
+
+class MockMediaQueryCapturingPredicates: MediaQueryProtocol {
+    nonisolated(unsafe) static var lastFilterPredicates: Set<MPMediaPredicate>?
+
+    var items: [MPMediaItem]?
+    var collections: [MPMediaItemCollection]?
+    var groupingType: MPMediaGrouping
+
+    required init(filterPredicates: Set<MPMediaPredicate>? = nil) {
+        Self.lastFilterPredicates = filterPredicates
+        items = [.mock]
+        collections = [.mock]
+        groupingType = .title
+    }
+
+    static func propertyPredicate(forProperty property: String) -> MPMediaPropertyPredicate? {
+        lastFilterPredicates?
+            .compactMap { $0 as? MPMediaPropertyPredicate }
+            .first { $0.property == property }
+    }
+}
