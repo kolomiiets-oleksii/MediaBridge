@@ -25,5 +25,5 @@ let package = Package(
             path: "Tests"
         )
     ],
-    swiftLanguageModes: [.v5]
+    swiftLanguageModes: [.v6]
 )
