@@ -18,10 +18,10 @@ jobs:
             ios: '18.5'
             device: iPhone 16
           - swift: '6.2'
-            xcode: '26.0.1'
-            runner: macos-15
-            ios: '26.0'
-            device: iPhone 16
+            xcode: '26.2'
+            runner: macos-26
+            ios: '26.2'
+            device: iPhone 17
           - swift: '6.3'
             xcode: '26.6'
             runner: macos-26
