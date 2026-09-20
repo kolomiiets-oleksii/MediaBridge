@@ -1,7 +1,7 @@
 import MediaPlayer
 
 /// Factory extension for creating a live instance of `MusicLibraryService`.
-extension MusicLibraryServiceProtocol where Self == MusicLibraryService<MPMediaQuery>, E == MusicLibraryServiceError {
+extension MusicLibraryServiceProtocol where Self == MusicLibraryService<MPMediaQuery> {
     /// Returns a live instance of the default `MusicLibraryService` implementation.
     ///
     /// Use this property in production code to get the standard service implementation:
@@ -26,7 +26,6 @@ extension MusicLibraryServiceProtocol where Self == MusicLibraryService<MPMediaQ
 ///
 /// For testing or custom implementations, conform to ``MusicLibraryServiceProtocol`` and inject your implementation.
 public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServiceProtocol, Sendable {
-    public typealias E = MusicLibraryServiceError
     public typealias Q = T
 
     // MARK: - MusicLibraryServiceProtocol Implementation
@@ -41,7 +40,10 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         comparisonType: MPMediaPredicateComparison = .equalTo,
         groupingType: MPMediaGrouping = .title
     ) async throws -> [MPMediaItem] {
-        query(type, withFilter: predicate, comparisonType, groupingType).items ?? []
+        results(
+            query(type, withFilter: predicate, comparisonType, groupingType).items,
+            of: predicate.description
+        )
     }
 
     /// Fetches all media items of a specific type with grouping.
@@ -52,7 +54,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         _ type: MPMediaType,
         groupingType: MPMediaGrouping
     ) async throws -> [MPMediaItem] {
-        query(type, groupingType).items ?? []
+        results(query(type, groupingType).items, of: "all items grouped by \(groupingType.rawValue)")
     }
 
     /// Fetches all media collections of a specific type with grouping.
@@ -63,7 +65,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         _ type: MPMediaType,
         groupingType: MPMediaGrouping
     ) async throws -> [MPMediaItemCollection] {
-        query(type, groupingType).collections ?? []
+        results(query(type, groupingType).collections, of: "all collections grouped by \(groupingType.rawValue)")
     }
 
     /// Fetches media item collection matching a predicate with default parameters.
@@ -76,7 +78,10 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         comparisonType: MPMediaPredicateComparison = .equalTo,
         groupingType: MPMediaGrouping = .title
     ) async throws -> [MPMediaItemCollection] {
-        query(type, withFilter: predicate, comparisonType, groupingType).collections ?? []
+        results(
+            query(type, withFilter: predicate, comparisonType, groupingType).collections,
+            of: predicate.description
+        )
     }
 
     /// Fetches all playlists from the music library.
@@ -84,7 +89,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
     /// Implementation of ``MusicLibraryServiceProtocol/fetchAllPlaylists()`` that retrieves all playlists
     /// using `MPMediaQuery` with `.playlist` grouping and casts the results to `[MPMediaPlaylist]`.
     public func fetchAllPlaylists() async throws -> [MPMediaPlaylist] {
-        (playlistQuery().collections ?? []).compactMap { $0 as? MPMediaPlaylist }
+        playlists(in: playlistQuery(), of: "all playlists")
     }
 
     /// Fetches playlists matching a predicate.
@@ -98,10 +103,46 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         let filter = predicate.predicate(using: comparisonType)
         var query = Q(filterPredicates: [filter])
         query.groupingType = .playlist
-        return (query.collections ?? []).compactMap { $0 as? MPMediaPlaylist }
+
+        return playlists(in: query, of: predicate.description)
     }
 
     // MARK: - Private Helpers
+
+    /// Unwraps a query result, logging when the library returns nothing.
+    ///
+    /// `MPMediaQuery` reports "no matches" as either `nil` or an empty array; both
+    /// arrive here as an empty array, and neither passes unnoticed.
+    private func results<Element>(
+        _ results: [Element]?,
+        of description: @escaping @autoclosure () -> String
+    ) -> [Element] {
+        guard let results else {
+            log.info("Query for \(description()) returned nil")
+            return []
+        }
+
+        if results.isEmpty {
+            log.info("Query for \(description()) matched nothing")
+        }
+
+        return results
+    }
+
+    /// Unwraps a playlist query, logging anything the playlist cast drops.
+    private func playlists(
+        in query: Q,
+        of description: @escaping @autoclosure () -> String
+    ) -> [MPMediaPlaylist] {
+        let collections = results(query.collections, of: description())
+        let playlists = collections.compactMap { $0 as? MPMediaPlaylist }
+
+        if playlists.count != collections.count {
+            log.debug("Skipped \(collections.count - playlists.count) non-playlist collections for \(description())")
+        }
+
+        return playlists
+    }
 
     private func query(
         _ type: MPMediaType,
@@ -120,8 +161,6 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         _ groupingType: MPMediaGrouping
     ) -> Q {
         let typePredicate = MediaItemPredicateInfo.mediaType(type)
-        // The media type is numeric; only .equalTo is valid for it. The caller's
-        // comparison type applies to their predicate alone.
         let typeFilter = typePredicate.predicate()
         let additionalFilter = predicate.predicate(using: comparisonType)
 

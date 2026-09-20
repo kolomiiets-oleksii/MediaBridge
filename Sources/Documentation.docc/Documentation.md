@@ -91,7 +91,6 @@ let library = MusicLibrary(auth: customAuth, service: customService)
 - ``MusicLibraryServiceProtocol``
 - ``MusicLibraryService``
 - ``MediaQueryProtocol``
-- ``MusicLibraryServiceError``
 
 ### Filtering & Predicates
 - ``MediaItemPredicateInfo``

@@ -13,12 +13,9 @@ import MediaPlayer
     /// ```
     /// Use the static factory methods on `MusicLibraryProtocol` (e.g. `.accessAuthorized`,
     /// `.accessDenied`) for common configurations, or construct a custom instance directly.
-    /// - Note: `@unchecked Sendable` because the stored `MPMediaItem`,
-    ///   `MPMediaItemCollection`, and `MPMediaPlaylist` arrays are not `Sendable`.
-    ///   Safety invariant: every stored property is a `let` assigned once during
-    ///   initialization, and MediaPlayer's item types are read-only, so no mutation
-    ///   crosses an isolation boundary. Remove the annotation once MediaPlayer marks
-    ///   these types `Sendable`.
+    // @unchecked Sendable: MediaPlayer's item types are not Sendable. Every stored
+    // property is a `let` assigned once during initialization and MediaPlayer's item
+    // types are read-only, so no mutation crosses an isolation boundary.
     public final class PreviewMusicLibrary: MusicLibraryProtocol, @unchecked Sendable {
         private let status: MPMediaLibraryAuthorizationStatus
         private let statusAfterRequest: MPMediaLibraryAuthorizationStatus

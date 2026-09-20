@@ -275,8 +275,7 @@ public protocol MusicLibraryProtocol: Sendable {
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     ///   - groupingType: How to group the returned collections (typically `.artist`)
     /// - Returns: Array of artist collections matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized,
-    ///   or ``MusicLibraryServiceError/noCollectionFound(_:)`` if no matching artists are found
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
     ///
     /// ## Example
     /// ```swift

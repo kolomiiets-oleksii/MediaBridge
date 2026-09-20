@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Requires Swift 6.0 / Xcode 16; reverses the `5.9` manifest from 0.9.1, which the sources never compiled under
 - `songs()`, `albums()`, `artists()`, `playlists()` are available to every `MusicLibraryProtocol` conformer, not just `MusicLibrary`
-- Queries with no results return an empty array instead of throwing
+- Queries with no results return an empty array instead of throwing, and log at `info`
 - `MusicLibraryProtocol`, `AuthorizationManagerProtocol`, `MusicLibraryServiceProtocol`, and `MediaLibraryProtocol` require `Sendable`
 - Compiles in the Swift 6 language mode (`swiftLanguageModes: [.v6]`), so data-race safety is enforced at compile time
 - Log subsystem uses the host app's bundle identifier
@@ -28,9 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - `Bool` and `MPMediaType` `Comparable` conformances; use the `FlagKey` overloads for booleans
-
-### Deprecated
-- `MusicLibraryServiceError.noItemsFound`, `.noCollectionsFound`, `.noItemFound(_:)`, `.noCollectionFound(_:)` — no longer thrown
+- `MusicLibraryServiceError` and `MusicLibraryServiceProtocol.E` — the service no longer throws for empty results; queries that match nothing are logged instead
 
 ## [0.9.1] - 2026-03-08
 

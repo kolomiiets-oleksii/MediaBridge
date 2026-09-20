@@ -128,8 +128,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - type: The type of media to fetch (typically `.music`)
     ///   - groupingType: How to group the returned items (`.title`, `.album`, `.artist`, etc.)
     /// - Returns: Array of all media items matching the specified type
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized,
-    ///   or ``MusicLibraryServiceError/noItemsFound`` if no items are found
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
     public func fetchAll(_ type: MPMediaType, groupingType: MPMediaGrouping) async throws -> [MPMediaItem] {
         try await checkIfAuthorized()
         return try await service.fetchAll(type, groupingType: groupingType)
@@ -147,8 +146,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     ///   - groupingType: How to group the returned items
     /// - Returns: Array of media items matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized,
-    ///   or ``MusicLibraryServiceError/noItemFound(_:)`` if no matching items are found
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
     public func mediaItems(
         ofType type: MPMediaType,
         matching predicate: MediaItemPredicateInfo,
@@ -171,8 +169,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     ///   - groupingType: How to group the returned collections (typically `.album` or `.albumArtist`)
     /// - Returns: Array of media item collections matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized,
-    ///   or ``MusicLibraryServiceError/noCollectionFound(_:)`` if no matching collections are found
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
     public func mediaItemCollections(
         ofType type: MPMediaType,
         matching predicate: MediaItemPredicateInfo,
@@ -221,8 +218,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     ///   - groupingType: How to group the returned collections (typically `.album` or `.albumArtist`)
     /// - Returns: Array of album collections matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized,
-    ///   or ``MusicLibraryServiceError/noCollectionFound(_:)`` if no matching albums are found
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
     ///
     /// ## Example
     /// ```swift
@@ -261,8 +257,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     ///   - groupingType: How to group the returned collections (typically `.artist` or `.albumArtist`)
     /// - Returns: Array of artist collections matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized,
-    ///   or ``MusicLibraryServiceError/noCollectionFound(_:)`` if no matching artists are found
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
     ///
     /// ## Example
     /// ```swift
@@ -303,8 +298,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - predicate: The predicate to filter playlists (e.g., `.playlistName("Favorites")`, `.playlistID(123)`)
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     /// - Returns: Array of playlists matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized,
-    ///   or ``MusicLibraryServiceError/noCollectionFound(_:)`` if no matching playlists are found
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
     ///
     /// ## Example
     /// ```swift

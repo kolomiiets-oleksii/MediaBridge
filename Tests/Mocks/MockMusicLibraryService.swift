@@ -2,7 +2,6 @@ import MediaBridge
 import MediaPlayer
 
 final class MockMusicLibraryService: MusicLibraryServiceProtocol {
-    typealias E = MockError
     typealias Q = MPMediaQuery
 
     enum MockError: Error {
