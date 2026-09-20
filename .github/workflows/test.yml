@@ -15,18 +15,18 @@ jobs:
           - swift: '6.1'
             xcode: '16.4'
             runner: macos-15
-            ios: '18.5'
-            device: iPhone 16
+            runtime: iOS-18-5
+            device_type: iPhone-16
           - swift: '6.2'
             xcode: '26.2'
             runner: macos-26
-            ios: '26.2'
-            device: iPhone 17
+            runtime: iOS-26-2
+            device_type: iPhone-17
           - swift: '6.3'
             xcode: '26.6'
             runner: macos-26
-            ios: '26.5'
-            device: iPhone 17
+            runtime: iOS-26-5
+            device_type: iPhone-17
 
     steps:
     - uses: actions/checkout@v5
@@ -37,11 +37,22 @@ jobs:
     - name: Show Swift version
       run: swift --version
 
+    - name: List installed simulator runtimes
+      run: xcrun simctl list runtimes
+
+    - name: Create and boot simulator
+      run: |
+        udid=$(xcrun simctl create ci-device \
+          "com.apple.CoreSimulator.SimDeviceType.${{ matrix.device_type }}" \
+          "com.apple.CoreSimulator.SimRuntime.${{ matrix.runtime }}" | tail -1)
+        xcrun simctl bootstatus "$udid" -b
+        echo "SIMULATOR_ID=$udid" >> "$GITHUB_ENV"
+
     - name: Run tests
       run: |
         xcodebuild test \
           -scheme MediaBridge \
-          -destination 'platform=iOS Simulator,OS=${{ matrix.ios }},name=${{ matrix.device }}' \
+          -destination "id=$SIMULATOR_ID" \
           -derivedDataPath .build \
           -enableCodeCoverage YES
 
@@ -75,9 +86,17 @@ jobs:
     - name: Show Swift version
       run: swift --version
 
+    - name: Create and boot simulator
+      run: |
+        udid=$(xcrun simctl create ci-device \
+          com.apple.CoreSimulator.SimDeviceType.iPhone-17 \
+          com.apple.CoreSimulator.SimRuntime.iOS-27-0 | tail -1)
+        xcrun simctl bootstatus "$udid" -b
+        echo "SIMULATOR_ID=$udid" >> "$GITHUB_ENV"
+
     - name: Run tests
       run: |
         xcodebuild test \
           -scheme MediaBridge \
-          -destination 'platform=iOS Simulator,OS=27.0,name=iPhone 17' \
+          -destination "id=$SIMULATOR_ID" \
           -derivedDataPath .build
