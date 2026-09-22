@@ -6,7 +6,7 @@ on:
 
 jobs:
   test:
-    name: Test (Swift ${{ matrix.swift }})
+    name: Test (Swift ${{ matrix.swift }}, Xcode ${{ matrix.xcode }})
     runs-on: ${{ matrix.runner }}
     continue-on-error: ${{ matrix.preview_image || false }}
     strategy:
@@ -14,45 +14,44 @@ jobs:
       matrix:
         include:
           - swift: '6.1'
+            xcode: '16.4'
             runner: macos-15
+            runtime: iOS-18-5
+            device_type: iPhone-16
           - swift: '6.2'
+            xcode: '26.2'
             runner: macos-26
+            runtime: iOS-26-2
+            device_type: iPhone-17
           - swift: '6.3'
+            xcode: '26.6'
             runner: macos-26
+            runtime: iOS-26-5
+            device_type: iPhone-17
           - swift: '6.4'
+            xcode: '27.0'
             runner: xcode-27
+            runtime: iOS-27-0
+            device_type: iPhone-17
             preview_image: true
 
     steps:
     - uses: actions/checkout@v5
 
-    - name: Select the newest Xcode providing Swift ${{ matrix.swift }}
-      run: .github/scripts/select-xcode.sh '${{ matrix.swift }}'
+    - name: Select Xcode ${{ matrix.xcode }}
+      run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
 
-    - name: Create and boot a simulator the selected Xcode supports
+    - name: Show Swift version
+      run: swift --version
+
+    - name: List installed simulator runtimes
+      run: xcrun simctl list runtimes
+
+    - name: Create and boot simulator
       run: |
-        sdk_version=$(xcrun --sdk iphonesimulator --show-sdk-version)
-        runtime=$(xcrun simctl list runtimes --json | jq -r --arg sdk "$sdk_version" '
-          [.runtimes[]
-            | select(.isAvailable and (.identifier | test("SimRuntime\\.iOS-")))
-            | select((.version | split(".") | map(tonumber)) <= ($sdk | split(".") | map(tonumber)))]
-          | sort_by(.version | split(".") | map(tonumber))
-          | last // empty
-          | .identifier')
-        if [ -z "$runtime" ]; then
-          echo "::error::No installed iOS simulator runtime is usable with the iOS $sdk_version SDK"
-          xcrun simctl list runtimes
-          exit 1
-        fi
-        for device_type in $(xcrun simctl list devicetypes --json | jq -r '
-          [.devicetypes[] | select(.productFamily == "iPhone")] | reverse | .[].identifier'); do
-          udid=$(xcrun simctl create ci-device "$device_type" "$runtime" 2>/dev/null | tail -1) || continue
-          [ -n "$udid" ] && break
-        done
-        if [ -z "${udid:-}" ]; then
-          echo "::error::No iPhone device type could be created for $runtime"
-          exit 1
-        fi
+        udid=$(xcrun simctl create ci-device \
+          "com.apple.CoreSimulator.SimDeviceType.${{ matrix.device_type }}" \
+          "com.apple.CoreSimulator.SimRuntime.${{ matrix.runtime }}" | tail -1)
         xcrun simctl bootstatus "$udid" -b
         echo "SIMULATOR_ID=$udid" >> "$GITHUB_ENV"
 
@@ -65,14 +64,17 @@ jobs:
           -enableCodeCoverage YES
 
   build-swift-6-0-floor:
-    name: Build (Swift 6.0)
+    name: Build (Swift 6.0, Xcode 16.0)
     runs-on: macos-15
 
     steps:
     - uses: actions/checkout@v5
 
-    - name: Select the newest Xcode providing Swift 6.0
-      run: .github/scripts/select-xcode.sh 6.0
+    - name: Select Xcode 16.0
+      run: sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
+
+    - name: Show Swift version
+      run: swift --version
 
     - name: Build for iOS
       run: |
