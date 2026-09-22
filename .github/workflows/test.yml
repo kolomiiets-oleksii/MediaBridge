@@ -4,10 +4,16 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Test (Swift ${{ matrix.swift }}, Xcode ${{ matrix.xcode }})
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    continue-on-error: ${{ matrix.preview_image || false }}
     strategy:
       fail-fast: false
       matrix:
@@ -27,6 +33,12 @@ jobs:
             runner: macos-26
             runtime: iOS-26-5
             device_type: iPhone-17
+          - swift: '6.4'
+            xcode: '27.0'
+            runner: xcode-27
+            runtime: iOS-27-0
+            device_type: iPhone-17
+            preview_image: true
 
     steps:
     - uses: actions/checkout@v5
@@ -53,12 +65,12 @@ jobs:
         xcodebuild test \
           -scheme MediaBridge \
           -destination "id=$SIMULATOR_ID" \
-          -derivedDataPath .build \
-          -enableCodeCoverage YES
+          -derivedDataPath .build
 
   build-swift-6-0-floor:
     name: Build (Swift 6.0, Xcode 16.0)
     runs-on: macos-15
+    timeout-minutes: 15
 
     steps:
     - uses: actions/checkout@v5
@@ -69,34 +81,8 @@ jobs:
     - name: Show Swift version
       run: swift --version
 
-    - name: Build for iOS
+    - name: Build library and tests for iOS
       run: |
-        xcodebuild build \
+        xcodebuild build-for-testing \
           -scheme MediaBridge \
           -destination 'generic/platform=iOS'
-
-  test-xcode-27-preview:
-    name: Test (Xcode 27 preview)
-    runs-on: xcode-27
-    continue-on-error: true
-
-    steps:
-    - uses: actions/checkout@v5
-
-    - name: Show Swift version
-      run: swift --version
-
-    - name: Create and boot simulator
-      run: |
-        udid=$(xcrun simctl create ci-device \
-          com.apple.CoreSimulator.SimDeviceType.iPhone-17 \
-          com.apple.CoreSimulator.SimRuntime.iOS-27-0 | tail -1)
-        xcrun simctl bootstatus "$udid" -b
-        echo "SIMULATOR_ID=$udid" >> "$GITHUB_ENV"
-
-    - name: Run tests
-      run: |
-        xcodebuild test \
-          -scheme MediaBridge \
-          -destination "id=$SIMULATOR_ID" \
-          -derivedDataPath .build
