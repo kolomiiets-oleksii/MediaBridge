@@ -76,8 +76,8 @@ jobs:
     - name: Show Swift version
       run: swift --version
 
-    - name: Build for iOS
+    - name: Build library and tests for iOS
       run: |
-        xcodebuild build \
+        xcodebuild build-for-testing \
           -scheme MediaBridge \
           -destination 'generic/platform=iOS'
