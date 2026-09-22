@@ -15,7 +15,7 @@ A Swift bridge for MPMediaLibrary integration.
 
 ## Requirements
 
-- Swift 6.0 / Xcode 16 or later (CI verifies Xcode 16.4; 16.0-16.3 are expected to work but are not built on every change)
+- Swift 6.0 / Xcode 16 or later (CI builds against Swift 6.0 and runs the test suite on Swift 6.1, 6.2, 6.3 and 6.4)
 - iOS 15.0+, visionOS 1.0+
 
 ## Retroactive conformances

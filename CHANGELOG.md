@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-09-22
+
+### Changed
+- CI runs the test suite on Swift 6.1, 6.2, 6.3 and 6.4, and builds the Swift 6.0 floor
+
 ## [0.10.0] - 2026-09-20
 
 ### Changed
