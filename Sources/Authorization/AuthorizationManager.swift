@@ -19,13 +19,16 @@ import MediaPlayer
 ///
 /// For custom implementations, conform to ``AuthorizationManagerProtocol`` and inject your implementation.
 public final class AuthorizationManager<T: MediaLibraryProtocol>: AuthorizationManagerProtocol, Sendable {
+    /// Creates a manager backed by the media library type `T`.
+    public init() {}
+
     /// Requests authorization to access the music library.
     ///
-    /// Checks if authorization is already granted. If so, returns immediately.
-    /// Otherwise, presents the system authorization dialog to the user.
+    /// Returns immediately if access is already granted. Otherwise asks `T` for access, which
+    /// shows the system prompt only if the user hasn't decided yet.
     ///
     /// - Returns: `.authorized` if permission is granted
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is denied
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is denied or restricted
     @discardableResult
     public func authorize() async throws -> MPMediaLibraryAuthorizationStatus {
         guard status() != .authorized else {

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-09-22
+
+### Added
+- `AuthorizationManager.init()` and `MusicLibraryService.init()` are public, so the generic types can be built with a custom `MediaLibraryProtocol` or `MediaQueryProtocol`
+- Documentation: `NSAppleMusicUsageDescription` setup, SwiftUI previews, and Topics for `SortKey`, `FlagKey`, and `PreviewMusicLibrary`
+
+### Fixed
+- Documentation for `albums()` and `artists()` claimed reverse order; results keep library order, as for every call with a `nil` sort key
+- Documentation for `requestAuthorization()` and `authorize()` said they return the current status; they return `.authorized` or throw
+- Documentation no longer says fetches require authorization first; they request it automatically
+- `MusicLibraryServiceProtocol` documentation no longer describes the error type removed in 0.10.0
+- SwiftUI examples use `try?` inside `.task`, which doesn't accept throwing code
+
 ## [0.10.1] - 2026-09-22
 
 ### Changed
