@@ -4,10 +4,15 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Test (Swift ${{ matrix.swift }}, Xcode ${{ matrix.xcode }})
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
     continue-on-error: ${{ matrix.preview_image || false }}
     strategy:
       fail-fast: false
@@ -60,12 +65,12 @@ jobs:
         xcodebuild test \
           -scheme MediaBridge \
           -destination "id=$SIMULATOR_ID" \
-          -derivedDataPath .build \
-          -enableCodeCoverage YES
+          -derivedDataPath .build
 
   build-swift-6-0-floor:
     name: Build (Swift 6.0, Xcode 16.0)
     runs-on: macos-15
+    timeout-minutes: 15
 
     steps:
     - uses: actions/checkout@v5
@@ -76,8 +81,8 @@ jobs:
     - name: Show Swift version
       run: swift --version
 
-    - name: Build for iOS
+    - name: Build library and tests for iOS
       run: |
-        xcodebuild build \
+        xcodebuild build-for-testing \
           -scheme MediaBridge \
           -destination 'generic/platform=iOS'
