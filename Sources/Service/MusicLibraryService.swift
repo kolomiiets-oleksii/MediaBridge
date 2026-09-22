@@ -28,6 +28,9 @@ extension MusicLibraryServiceProtocol where Self == MusicLibraryService<MPMediaQ
 public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServiceProtocol, Sendable {
     public typealias Q = T
 
+    /// Creates a service that builds its queries with `T`.
+    public init() {}
+
     // MARK: - MusicLibraryServiceProtocol Implementation
 
     /// Fetches media items matching a predicate with default parameters.

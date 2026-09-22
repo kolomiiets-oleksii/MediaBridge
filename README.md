@@ -36,11 +36,14 @@ dependencies: [
 
 ## Quick Start
 
+Add `NSAppleMusicUsageDescription` to your app's Info.plist first — iOS terminates the app on
+the first library access without it.
+
 ```swift
 let library = MusicLibrary()
 
-// Optional: Check or request authorization first
-if library.authorizationStatus != .authorized {
+// Optional: fetches request access on their own; call this only to choose when the prompt appears
+if library.authorizationStatus == .notDetermined {
     try await library.requestAuthorization()
 }
 

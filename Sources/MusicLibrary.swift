@@ -12,8 +12,6 @@ import MediaPlayer
 /// - Authorization management via `AuthorizationManagerProtocol`
 /// - Media queries via `MusicLibraryServiceProtocol`
 ///
-/// It ensures users have permission to access the music library before making queries.
-///
 /// ## Usage
 ///
 /// Create an instance and use it directly:
@@ -34,18 +32,15 @@ import MediaPlayer
 ///
 ///     var body: some View {
 ///         VStack {
-///             // Optional: Request authorization if not yet determined
+///             // Optional: fetches prompt on their own; this just picks the moment
 ///             if library.authorizationStatus == .notDetermined {
-///                 Button("Request Music Library Access") {
-///                     Task {
-///                         try await library.requestAuthorization()
-///                     }
+///                 Button("Allow Music Library Access") {
+///                     Task { try? await library.requestAuthorization() }
 ///                 }
 ///             }
-///             // Use library here
 ///         }
 ///         .task {
-///             let songs = try await library.songs(
+///             let songs = try? await library.songs(
 ///                 sortedBy: \MPMediaItem.skipCount,
 ///                 order: .reverse
 ///             )
@@ -128,7 +123,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - type: The type of media to fetch (typically `.music`)
     ///   - groupingType: How to group the returned items (`.title`, `.album`, `.artist`, etc.)
     /// - Returns: Array of all media items matching the specified type
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
     public func fetchAll(_ type: MPMediaType, groupingType: MPMediaGrouping) async throws -> [MPMediaItem] {
         try await checkIfAuthorized()
         return try await service.fetchAll(type, groupingType: groupingType)
@@ -146,7 +141,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     ///   - groupingType: How to group the returned items
     /// - Returns: Array of media items matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
     public func mediaItems(
         ofType type: MPMediaType,
         matching predicate: MediaItemPredicateInfo,
@@ -169,7 +164,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     ///   - groupingType: How to group the returned collections (typically `.album` or `.albumArtist`)
     /// - Returns: Array of media item collections matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
     public func mediaItemCollections(
         ofType type: MPMediaType,
         matching predicate: MediaItemPredicateInfo,
@@ -218,7 +213,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     ///   - groupingType: How to group the returned collections (typically `.album` or `.albumArtist`)
     /// - Returns: Array of album collections matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
     ///
     /// ## Example
     /// ```swift
@@ -257,7 +252,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     ///   - groupingType: How to group the returned collections (typically `.artist` or `.albumArtist`)
     /// - Returns: Array of artist collections matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
     ///
     /// ## Example
     /// ```swift
@@ -298,7 +293,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///   - predicate: The predicate to filter playlists (e.g., `.playlistName("Favorites")`, `.playlistID(123)`)
     ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
     /// - Returns: Array of playlists matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
     ///
     /// ## Example
     /// ```swift

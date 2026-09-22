@@ -25,7 +25,7 @@ extension MusicLibraryProtocol {
     ///   - sortingKey: The boolean key path to sort by, or `nil` to leave the order untouched
     ///   - order: The sort order
     /// - Returns: Array of songs sorted by the key path
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
     public func songs(
         sortedBy sortingKey: FlagKey<MPMediaItem>?,
         order: SortOrder
@@ -41,7 +41,7 @@ extension MusicLibraryProtocol {
     ///   - sortingKey: The boolean key path to sort by, or `nil` to leave the order untouched
     ///   - order: The sort order
     /// - Returns: Array of albums sorted by the key path
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
     public func albums(
         sortedBy sortingKey: FlagKey<MPMediaItemCollection>?,
         order: SortOrder
@@ -57,7 +57,7 @@ extension MusicLibraryProtocol {
     ///   - sortingKey: The boolean key path to sort by, or `nil` to leave the order untouched
     ///   - order: The sort order
     /// - Returns: Array of artists sorted by the key path
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
     public func artists(
         sortedBy sortingKey: FlagKey<MPMediaItemCollection>?,
         order: SortOrder
@@ -73,7 +73,7 @@ extension MusicLibraryProtocol {
     ///   - sortingKey: The boolean key path to sort by, or `nil` to leave the order untouched
     ///   - order: The sort order
     /// - Returns: Array of playlists sorted by the key path
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if music library access is not authorized
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
     public func playlists(
         sortedBy sortingKey: FlagKey<MPMediaPlaylist>?,
         order: SortOrder

@@ -20,12 +20,11 @@ public protocol AuthorizationManagerProtocol: Sendable {
 
     /// Requests authorization to access the music library.
     ///
-    /// If authorization is already granted, returns immediately with `.authorized`.
-    /// If not authorized, shows the system authorization dialog to the user.
-    /// Safe to call multiple times.
+    /// Returns immediately if access is already granted. Otherwise shows the system prompt,
+    /// if the user hasn't decided yet. Safe to call multiple times.
     ///
-    /// - Returns: The authorization status after the request completes
-    /// - Throws: `AuthorizationManagerError.unauthorized` if the user denies access
+    /// - Returns: `.authorized`; any other outcome throws
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is denied or restricted
     ///
     /// ## Example
     /// ```swift
