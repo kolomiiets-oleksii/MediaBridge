@@ -7,6 +7,7 @@
 A Swift bridge for MPMediaLibrary integration.
 
 [![Swift Package Index](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fkolomiiets-oleksii%2FMediaBridge%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/kolomiiets-oleksii/MediaBridge)
+[![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fkolomiiets-oleksii%2FMediaBridge%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/kolomiiets-oleksii/MediaBridge)
 [![iOS 15.0+](https://img.shields.io/badge/iOS-15.0+-007AFF?logo=apple&logoColor=white)](https://www.apple.com/ios/)
 [![visionOS 1.0+](https://img.shields.io/badge/🥽_visionOS-1.0+-7B68EE)](https://developer.apple.com/visionos/)
 [![Latest Release](https://img.shields.io/github/v/release/kolomiiets-oleksii/MediaBridge?color=8B5CF6&logo=github&logoColor=white)](https://github.com/kolomiiets-oleksii/MediaBridge/releases)
