@@ -9,8 +9,8 @@ A Swift bridge for MPMediaLibrary integration.
 [![Swift Package Index](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fkolomiiets-oleksii%2FMediaBridge%2Fbadge%3Ftype%3Dswift-versions)](https://github.com/kolomiiets-oleksii/MediaBridge)
 [![iOS 15.0+](https://img.shields.io/badge/iOS-15.0+-007AFF?logo=apple&logoColor=white)](https://www.apple.com/ios/)
 [![visionOS 1.0+](https://img.shields.io/badge/🥽_visionOS-1.0+-7B68EE)](https://developer.apple.com/visionos/)
-[![Latest Release](https://img.shields.io/github/v/release/oleksiikolomiietssnapp/MediaBridge?color=8B5CF6&logo=github&logoColor=white)](https://github.com/oleksiikolomiietssnapp/MediaBridge/releases)
-[![Tests](https://github.com/oleksiikolomiietssnapp/MediaBridge/actions/workflows/test.yml/badge.svg)](https://github.com/oleksiikolomiietssnapp/MediaBridge/actions)
+[![Latest Release](https://img.shields.io/github/v/release/kolomiiets-oleksii/MediaBridge?color=8B5CF6&logo=github&logoColor=white)](https://github.com/kolomiiets-oleksii/MediaBridge/releases)
+[![Tests](https://github.com/kolomiiets-oleksii/MediaBridge/actions/workflows/test.yml/badge.svg)](https://github.com/kolomiiets-oleksii/MediaBridge/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-22C55E)](LICENSE)
 
 ## Requirements
@@ -30,7 +30,7 @@ Add MediaBridge to your project via Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/oleksiikolomiietssnapp/MediaBridge.git", from: "0.10.0")
+    .package(url: "https://github.com/kolomiiets-oleksii/MediaBridge.git", from: "0.10.2")
 ]
 ```
 
@@ -90,7 +90,7 @@ Both the service layer and authorization manager use production implementations 
 
 ## Documentation
 
-For more information visit [Documentation](https://swiftpackageindex.com/kolomiiets-oleksii/MediaBridge/0.9.2/documentation/mediabridge).
+For more information visit [Documentation](https://swiftpackageindex.com/kolomiiets-oleksii/MediaBridge/documentation/mediabridge).
 
 ## Contributing
 
