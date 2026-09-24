@@ -21,7 +21,7 @@ Thank you for your interest in contributing to MediaBridge! We welcome contribut
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/oleksiikolomiietssnapp/MediaBridge.git
+git clone https://github.com/kolomiiets-oleksii/MediaBridge.git
 cd MediaBridge
 ```
 
