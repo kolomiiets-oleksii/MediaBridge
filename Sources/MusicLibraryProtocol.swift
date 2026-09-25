@@ -369,9 +369,58 @@ public protocol MusicLibraryProtocol: Sendable {
         order: SortOrder
     ) async throws -> [MPMediaPlaylist]
 
+    /// Returns the playlist your app created with `id`, or `nil` when it doesn't exist.
+    ///
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted
+    ///   after the automatic authorization request
+    func playlist(id: UUID) async throws -> Playlist?
+
+    /// Returns the playlist your app created with `id`, creating it from `metadata` the first time.
+    ///
+    /// Generate the UUID once and store it: the same UUID always returns the same playlist, and
+    /// `metadata` is ignored once the playlist exists. The playlist appears in the Music app.
+    ///
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted
+    ///   after the automatic authorization request, ``MusicLibraryError/playlistUnavailable(_:)``
+    ///   if MediaPlayer creates nothing, or MediaPlayer's own error
+    ///
+    /// ## Example
+    /// ```swift
+    /// let playlist = try await library.playlist(
+    ///     id: mostSkippedID,
+    ///     orCreate: PlaylistMetadata(name: "Most Skipped", descriptionText: "Songs I skip")
+    /// )
+    /// try await library.add(songs, to: playlist)
+    /// ```
+    func playlist(id: UUID, orCreate metadata: PlaylistMetadata) async throws -> Playlist
+
+    /// Appends `songs` to `playlist`, keeping their order. Does nothing when `songs` is empty.
+    ///
+    /// Only playlists your app created with ``playlist(id:orCreate:)`` can be changed; MediaPlayer
+    /// throws for any other. Songs can't be removed: MediaPlayer has no API for it.
+    ///
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted
+    ///   after the automatic authorization request, or MediaPlayer's own error
+    func add(_ songs: [Song], to playlist: Playlist) async throws
+
 }
 
 extension MusicLibraryProtocol {
+    /// Throws ``MusicLibraryError/writesUnsupported``, for conformers written before 0.14.
+    public func playlist(id: UUID) async throws -> Playlist? {
+        throw MusicLibraryError.writesUnsupported
+    }
+
+    /// Throws ``MusicLibraryError/writesUnsupported``, for conformers written before 0.14.
+    public func playlist(id: UUID, orCreate metadata: PlaylistMetadata) async throws -> Playlist {
+        throw MusicLibraryError.writesUnsupported
+    }
+
+    /// Throws ``MusicLibraryError/writesUnsupported``, for conformers written before 0.14.
+    public func add(_ songs: [Song], to playlist: Playlist) async throws {
+        throw MusicLibraryError.writesUnsupported
+    }
+
     /// A stream that never yields, for conformers that don't observe the library.
     public var changes: AsyncStream<Date> { SilentLibraryChanges().changes() }
 

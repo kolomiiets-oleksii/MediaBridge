@@ -34,6 +34,14 @@ public protocol MusicLibraryServiceProtocol: Sendable {
 
     /// Returns the collections matching `request` split into index sections.
     func collectionSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItemCollection>]
+
+    /// Returns the app's playlist with `id`, creating it from `metadata` when it doesn't exist.
+    ///
+    /// With `metadata` `nil`, only looks the playlist up and returns `nil` when there is none.
+    func playlist(id: UUID, creating metadata: PlaylistMetadata?) async throws -> MPMediaPlaylist?
+
+    /// Appends `items` to `playlist`. Only playlists your app created can be changed.
+    func add(_ items: [MPMediaItem], to playlist: MPMediaPlaylist) async throws
 }
 
 extension MusicLibraryServiceProtocol {
@@ -45,5 +53,15 @@ extension MusicLibraryServiceProtocol {
     /// Groups ``collections(_:)`` by the first letter of their title for the request's grouping.
     public func collectionSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItemCollection>] {
         MediaSection.alphabetical(try await collections(request), grouping: request.grouping)
+    }
+
+    /// Throws ``MusicLibraryError/writesUnsupported``, for services written before 0.14.
+    public func playlist(id: UUID, creating metadata: PlaylistMetadata?) async throws -> MPMediaPlaylist? {
+        throw MusicLibraryError.writesUnsupported
+    }
+
+    /// Throws ``MusicLibraryError/writesUnsupported``, for services written before 0.14.
+    public func add(_ items: [MPMediaItem], to playlist: MPMediaPlaylist) async throws {
+        throw MusicLibraryError.writesUnsupported
     }
 }

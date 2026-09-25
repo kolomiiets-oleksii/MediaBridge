@@ -26,8 +26,16 @@ extension MusicLibraryServiceProtocol where Self == MusicLibraryService<MPMediaQ
 ///
 /// For testing or custom implementations, conform to ``MusicLibraryServiceProtocol`` and inject your implementation.
 public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServiceProtocol, Sendable {
+    private let playlistLibrary: @Sendable () -> any PlaylistLibrary
+
     /// Creates a service that builds its queries with `T`.
-    public init() {}
+    public init() {
+        playlistLibrary = { MPMediaLibrary.default() }
+    }
+
+    init(playlistLibrary: some PlaylistLibrary & Sendable) {
+        self.playlistLibrary = { playlistLibrary }
+    }
 
     public func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem] {
         emptyLoggingResults(query(for: request).items, of: request)
@@ -53,6 +61,24 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
             return MediaSection.alphabetical(collections, grouping: request.grouping)
         }
         return split(collections, into: sections)
+    }
+
+    public func playlist(id: UUID, creating metadata: PlaylistMetadata?) async throws -> MPMediaPlaylist? {
+        let library = playlistLibrary()
+        let playlist = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<UncheckedPlaylist, Error>) in
+            library.getPlaylist(with: id, creationMetadata: metadata?.creationMetadata) { playlist, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: UncheckedPlaylist(playlist: playlist))
+                }
+            }
+        }
+        return playlist.playlist
+    }
+
+    public func add(_ items: [MPMediaItem], to playlist: MPMediaPlaylist) async throws {
+        try await playlist.add(items)
     }
 
     private func split<Element>(
@@ -89,4 +115,8 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         }
         return results
     }
+}
+
+private struct UncheckedPlaylist: @unchecked Sendable {
+    let playlist: MPMediaPlaylist?
 }
