@@ -31,7 +31,7 @@ Add MediaBridge to your project via Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/kolomiiets-oleksii/MediaBridge.git", from: "0.14.0")
+    .package(url: "https://github.com/kolomiiets-oleksii/MediaBridge.git", from: "0.15.0")
 ]
 ```
 
@@ -54,6 +54,9 @@ let mostPlayed = try await library.fetch(
 // Save them to your app's own playlist
 let playlist = try await library.playlist(id: mostPlayedID, orCreate: PlaylistMetadata(name: "Most Played"))
 try await library.add(mostPlayed, to: playlist)
+
+// Apple Music subscribers: add catalog songs by product ID
+try await library.add(productID: "1440839718", to: playlist)
 ```
 
 Let people pick songs with the system picker (iOS):
