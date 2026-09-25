@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-25
+
+### Changed
+- **Breaking for custom services:** `MusicLibraryServiceProtocol` requires `items(_:)` and `collections(_:)`, which take a `MediaQueryRequest`, instead of `fetchAll`, `fetch`, `fetchAllCollections`, `fetchCollections`, `fetchAllPlaylists`, and `fetchPlaylists`. `MusicLibrary` builds songs, albums, artists, and playlists from these, and filters playlists itself
+- Previews run through the real `MusicLibrary`, so sorting, filtering, and the authorization flow behave as they do on device; `.accessDenied` and the other presets return `MusicLibrary`
+- A preview whose access ends up denied or restricted throws `AuthorizationManagerError` from fetches and `requestAuthorization()`, matching the live library
+- `AuthorizationManagerProtocol` and `MusicLibraryServiceProtocol` no longer declare the unused associated types `T` and `Q`; the public `AuthorizationManagerProtocol.T` typealias is removed
+
+### Added
+- `MediaQueryRequest`, describing a query by media type, optional filter, and grouping
+- `.preview(authStatus:authStatusAfterRequest:songs:albums:artists:playlists:)`, whose predicates are evaluated in memory
+- `MediaItemPredicateInfo` conforms to `Equatable`
+
+### Deprecated
+- `PreviewMusicLibrary`, now a typealias for `MusicLibrary`, and its initializer
+- `.preview(...)` with the `fetchedAllMedia`, `fetchedMedia`, `fetchedSongs`, `filteredSongs`, `filteredAlbums`, `filteredArtists`, and `filteredPlaylists` parameters
+
 ## [0.10.3] - 2026-09-25
 
 ### Fixed

@@ -83,20 +83,31 @@ struct ContentView: View {
 
 ### Service Layer & Authorization
 
-Both the service layer and authorization manager use production-ready implementations by default (`.live`), but you can provide custom implementations for testing or specialized behavior:
+Both the service layer and authorization manager use production-ready implementations by default (`.live`), but you can provide custom implementations for testing or specialized behavior.
+
+A service answers ``MediaQueryRequest``s with items or collections; ``MusicLibrary`` builds every call from those two methods, and handles authorization, sorting, and playlist filtering itself:
 
 ```swift
-let customAuth = MyAuthorizationManager()
-let customService = MyMusicLibraryService()
-let library = MusicLibrary(auth: customAuth, service: customService)
+struct FixtureService: MusicLibraryServiceProtocol {
+    let songs: [MPMediaItem]
+    func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem] { songs }
+    func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection] { [] }
+}
+
+let library = MusicLibrary(auth: MyAuthorizationManager(), service: FixtureService(songs: fixtures))
 ```
 
 ### SwiftUI Previews
 
-In debug builds, ``PreviewMusicLibrary`` stands in for the real library, with presets for each authorization state:
+In debug builds, `.preview(...)` builds a ``MusicLibrary`` backed by fixed data, and presets such as `.accessDenied` cover each authorization state. Sorting, filtering, and the authorization flow run through the real library:
 
 ```swift
 #Preview {
+    ContentView()
+        .environment(\.library, .preview(songs: previewSongs))
+}
+
+#Preview("Denied") {
     ContentView()
         .environment(\.library, .accessDenied)
 }
@@ -110,6 +121,7 @@ In debug builds, ``PreviewMusicLibrary`` stands in for the real library, with pr
 
 ### Service Layer
 - ``MusicLibraryServiceProtocol``
+- ``MediaQueryRequest``
 - ``MusicLibraryService``
 - ``MediaQueryProtocol``
 
@@ -126,5 +138,3 @@ In debug builds, ``PreviewMusicLibrary`` stands in for the real library, with pr
 - ``MediaLibraryProtocol``
 - ``AuthorizationManagerError``
 
-### Previews
-- ``PreviewMusicLibrary``
