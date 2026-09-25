@@ -276,6 +276,27 @@ public final class MusicLibrary: MusicLibraryProtocol {
         return sorted
     }
 
+    // MARK: - Playlist Writes
+
+    public func playlist(id: UUID) async throws -> Playlist? {
+        try await checkIfAuthorized()
+        return try await service.playlist(id: id, creating: nil).map(Playlist.init)
+    }
+
+    public func playlist(id: UUID, orCreate metadata: PlaylistMetadata) async throws -> Playlist {
+        try await checkIfAuthorized()
+        guard let playlist = try await service.playlist(id: id, creating: metadata) else {
+            throw MusicLibraryError.playlistUnavailable(id)
+        }
+        return Playlist(playlist)
+    }
+
+    public func add(_ songs: [Song], to playlist: Playlist) async throws {
+        try await checkIfAuthorized()
+        guard !songs.isEmpty else { return }
+        try await service.add(songs.map(\.mediaItem), to: playlist.mediaPlaylist)
+    }
+
     private func checkIfAuthorized() async throws {
         let status = authorizationStatus
 

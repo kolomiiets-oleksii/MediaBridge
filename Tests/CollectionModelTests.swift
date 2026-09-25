@@ -117,6 +117,10 @@ struct CollectionModelTests {
 
 final class StubPlaylist: MPMediaPlaylist, @unchecked Sendable {
     private let values: [String: Any]
+    private let lock = NSLock()
+    private var addedItems: [MPMediaItem] = []
+
+    var added: [MPMediaItem] { lock.withLock { addedItems } }
 
     init(name: String, attributes: MPMediaPlaylistAttribute) {
         values = [
@@ -129,4 +133,9 @@ final class StubPlaylist: MPMediaPlaylist, @unchecked Sendable {
     required init?(coder: NSCoder) { nil }
 
     override func value(forProperty property: String) -> Any? { values[property] }
+
+    override func add(_ mediaItems: [MPMediaItem], completionHandler: ((Error?) -> Void)? = nil) {
+        lock.withLock { addedItems += mediaItems }
+        completionHandler?(nil)
+    }
 }

@@ -13,6 +13,7 @@ public struct Playlist: Identifiable, Hashable, @unchecked Sendable {
     public var id: MPMediaEntityPersistentID { reader.number(MPMediaPlaylistPropertyPersistentID)?.uint64Value ?? 0 }
     public var name: String? { reader.value(MPMediaPlaylistPropertyName) }
     public var descriptionText: String? { reader.value(MPMediaPlaylistPropertyDescriptionText) }
+    public var authorDisplayName: String? { reader.value(MPMediaPlaylistPropertyAuthorDisplayName) }
     /// The playlist's iCloud Music Library identifier, when it has one.
     public var cloudID: String? { reader.value(MPMediaPlaylistPropertyCloudGlobalID) }
     public var isSmart: Bool { attributes.contains(.smart) }
