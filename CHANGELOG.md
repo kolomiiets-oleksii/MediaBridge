@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-09-25
+
+### Added
+- Playlist writes: `library.playlist(id:orCreate:)` gets or creates your app's playlist from a `PlaylistMetadata` (name, description, author), `library.playlist(id:)` looks one up, and `library.add(_:to:)` appends songs. Each checks authorization first.
+- `MusicLibraryServiceProtocol.playlist(id:creating:)` and `add(_:to:)`, the service primitives behind the writes.
+- `MusicLibraryError`: `playlistUnavailable(_:)` when MediaPlayer creates nothing, and `writesUnsupported` from the default implementations, so services and `MusicLibraryProtocol` conformers written before 0.14 keep compiling.
+- `MediaPicker`, a SwiftUI wrapper for `MPMediaPickerController`, and the `.mediaPicker(isPresented:)` modifier that presents it in a sheet (iOS only; the picker isn't available on visionOS).
+- `Playlist.authorDisplayName`.
+- Preview libraries create playlists and add songs in memory.
+- Example app: Save as Playlist, which adds the most skipped songs to a "Most Skipped" playlist without duplicates.
+
 ## [0.13.1] - 2026-09-25
 
 ### Changed

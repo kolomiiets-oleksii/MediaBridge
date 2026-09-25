@@ -137,6 +137,30 @@ struct ContentView: View {
 }
 ```
 
+### Playlists and Picking Songs
+
+Your app can create its own playlists and add songs to them. Generate the UUID once and keep it:
+the same UUID always returns the same playlist, which also appears in the Music app.
+
+```swift
+let playlist = try await library.playlist(
+    id: mostSkippedID,
+    orCreate: PlaylistMetadata(name: "Most Skipped", descriptionText: "Songs I skip")
+)
+try await library.add(songs, to: playlist)
+```
+
+MediaPlayer can't remove songs from a playlist, and only playlists your app created can be changed.
+
+To let people choose songs themselves, present the system picker (iOS only):
+
+```swift
+Button("Add Songs") { isPicking = true }
+    .mediaPicker(isPresented: $isPicking) { songs in
+        Task { try await library.add(songs, to: playlist) }
+    }
+```
+
 ### Service Layer & Authorization
 
 Both the service layer and authorization manager use production-ready implementations by default (`.live`), but you can provide custom implementations for testing or specialized behavior.
@@ -178,6 +202,11 @@ In debug builds, `.preview(...)` builds a ``MusicLibrary`` backed by fixed data,
 - ``Genre``
 - ``Playlist``
 - ``ArtworkImage``
+
+### Playlists and Picking
+- ``PlaylistMetadata``
+- ``MusicLibraryError``
+- ``MediaPicker``
 
 ### Queries
 - ``LibraryQuery``
