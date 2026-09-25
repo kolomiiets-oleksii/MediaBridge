@@ -376,13 +376,16 @@ extension MusicLibraryProtocol {
     public var changes: AsyncStream<Date> { SilentLibraryChanges().changes() }
 
     /// Routes the request through ``fetchAll(_:groupingType:)`` or
-    /// ``mediaItems(ofType:matching:_:groupingType:)``, for conformers written before 0.12.
+    /// ``mediaItems(ofType:matching:_:groupingType:)``, for conformers written before 0.12. The first
+    /// filter runs in that query; any further filters are applied in memory.
     public func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem] {
         let type = request.mediaType ?? .any
-        guard let filter = request.filter else {
+        guard let first = request.filters.first else {
             return try await fetchAll(type, groupingType: request.grouping)
         }
-        return try await mediaItems(ofType: type, matching: filter.predicate, filter.comparison, groupingType: request.grouping)
+        let items = try await mediaItems(ofType: type, matching: first.predicate, first.comparison, groupingType: request.grouping)
+        let rest = request.filters.dropFirst()
+        return items.filter { item in rest.allSatisfy { $0.matches(item) } }
     }
 
     /// Groups ``items(_:)`` by the first letter of their title, for conformers written before 0.12.
@@ -396,12 +399,17 @@ extension MusicLibraryProtocol {
     }
 
     /// Routes the request through ``mediaItemCollections(ofType:matching:_:groupingType:)``, for
-    /// conformers written before 0.12. An unfiltered request filters by its media type.
+    /// conformers written before 0.12. An unfiltered request filters by its media type; filters
+    /// after the first are applied in memory.
     public func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection] {
         let type = request.mediaType ?? .any
-        let filter = request.filter ?? .init(.mediaType(type))
-        return try await mediaItemCollections(
-            ofType: type, matching: filter.predicate, filter.comparison, groupingType: request.grouping)
+        let first = request.filters.first ?? .init(.mediaType(type))
+        let collections = try await mediaItemCollections(
+            ofType: type, matching: first.predicate, first.comparison, groupingType: request.grouping)
+        let rest = request.filters.dropFirst()
+        return collections.filter { collection in
+            rest.allSatisfy { filter in filter.matches(collection) || collection.items.contains { filter.matches($0) } }
+        }
     }
 
     // MARK: - Deprecated
