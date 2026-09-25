@@ -403,6 +403,27 @@ public protocol MusicLibraryProtocol: Sendable {
     ///   after the automatic authorization request, or MediaPlayer's own error
     func add(_ songs: [Song], to playlist: Playlist) async throws
 
+    /// Adds an Apple Music catalog song, album, or playlist to the user's library and returns the
+    /// songs it added, in album or playlist order.
+    ///
+    /// The user needs Apple Music with Sync Library turned on: check MusicKit's
+    /// `MusicSubscription.current.hasCloudLibraryEnabled` first. Nothing can remove songs from the
+    /// library afterwards, so add only what the user asked for.
+    ///
+    /// - Parameter productID: The Apple Music catalog ID, such as a song's ``Song/playbackStoreID``
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted
+    ///   after the automatic authorization request, or MediaPlayer's own error
+    @discardableResult
+    func add(productID: String) async throws -> [Song]
+
+    /// Appends an Apple Music catalog song to a playlist your app created.
+    ///
+    /// Needs the same Apple Music capability as ``add(productID:)``.
+    ///
+    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted
+    ///   after the automatic authorization request, or MediaPlayer's own error
+    func add(productID: String, to playlist: Playlist) async throws
+
 }
 
 extension MusicLibraryProtocol {
@@ -418,6 +439,17 @@ extension MusicLibraryProtocol {
 
     /// Throws ``MusicLibraryError/writesUnsupported``, for conformers written before 0.14.
     public func add(_ songs: [Song], to playlist: Playlist) async throws {
+        throw MusicLibraryError.writesUnsupported
+    }
+
+    /// Throws ``MusicLibraryError/writesUnsupported``, for conformers written before 0.15.
+    @discardableResult
+    public func add(productID: String) async throws -> [Song] {
+        throw MusicLibraryError.writesUnsupported
+    }
+
+    /// Throws ``MusicLibraryError/writesUnsupported``, for conformers written before 0.15.
+    public func add(productID: String, to playlist: Playlist) async throws {
         throw MusicLibraryError.writesUnsupported
     }
 

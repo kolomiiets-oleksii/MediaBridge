@@ -12,8 +12,8 @@ struct PlaylistWriteTests {
     struct LiveService {
         @Test("When creating a playlist, then MediaPlayer receives the UUID and the metadata")
         func creates() async throws {
-            let mediaLibrary = StubPlaylistLibrary(result: .success(StubPlaylist(name: "Most Skipped", attributes: [])))
-            let service = MusicLibraryService<MPMediaQuery>(playlistLibrary: mediaLibrary)
+            let mediaLibrary = StubWritableLibrary(result: .success(StubPlaylist(name: "Most Skipped", attributes: [])))
+            let service = MusicLibraryService<MPMediaQuery>(mediaLibrary: mediaLibrary)
             let id = UUID()
 
             let playlist = try await service.playlist(id: id, creating: PlaylistWriteTests.metadata)
@@ -28,8 +28,8 @@ struct PlaylistWriteTests {
 
         @Test("When looking a playlist up, then no metadata is sent and a missing playlist is nil")
         func looksUp() async throws {
-            let mediaLibrary = StubPlaylistLibrary(result: .success(nil))
-            let service = MusicLibraryService<MPMediaQuery>(playlistLibrary: mediaLibrary)
+            let mediaLibrary = StubWritableLibrary(result: .success(nil))
+            let service = MusicLibraryService<MPMediaQuery>(mediaLibrary: mediaLibrary)
 
             let playlist = try await service.playlist(id: UUID(), creating: nil)
 
@@ -39,7 +39,7 @@ struct PlaylistWriteTests {
 
         @Test("When MediaPlayer fails, then its error is rethrown")
         func passesErrorThrough() async {
-            let service = MusicLibraryService<MPMediaQuery>(playlistLibrary: StubPlaylistLibrary(result: .failure(StubError.failed)))
+            let service = MusicLibraryService<MPMediaQuery>(mediaLibrary: StubWritableLibrary(result: .failure(StubError.failed)))
 
             await #expect(throws: StubError.failed) {
                 _ = try await service.playlist(id: UUID(), creating: PlaylistWriteTests.metadata)
@@ -183,21 +183,33 @@ private struct ReadOnlyFixtureService: MusicLibraryServiceProtocol {
     func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection] { [] }
 }
 
-final class StubPlaylistLibrary: PlaylistLibrary, @unchecked Sendable {
+final class StubWritableLibrary: WritableMediaLibrary, @unchecked Sendable {
     struct Request {
         let id: UUID
         let metadata: MPMediaPlaylistCreationMetadata?
     }
 
     private let result: Result<MPMediaPlaylist?, Error>
+    private let added: Result<[MPMediaEntity], Error>
     private let lock = NSLock()
     private var recorded: [Request] = []
+    private var recordedProductIDs: [String] = []
 
-    init(result: Result<MPMediaPlaylist?, Error>) {
+    init(result: Result<MPMediaPlaylist?, Error> = .success(nil), added: Result<[MPMediaEntity], Error> = .success([])) {
         self.result = result
+        self.added = added
     }
 
     var requests: [Request] { lock.withLock { recorded } }
+    var productIDs: [String] { lock.withLock { recordedProductIDs } }
+
+    func addItem(withProductID productID: String, completionHandler: (@Sendable ([MPMediaEntity], Error?) -> Void)?) {
+        lock.withLock { recordedProductIDs.append(productID) }
+        switch added {
+        case .success(let entities): completionHandler?(entities, nil)
+        case .failure(let error): completionHandler?([], error)
+        }
+    }
 
     func getPlaylist(
         with uuid: UUID,

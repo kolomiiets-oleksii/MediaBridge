@@ -15,6 +15,13 @@ final class MockMusicLibraryService: MusicLibraryServiceProtocol, @unchecked Sen
     private var recorded: [MediaQueryRequest] = []
     private var recordedLookups: [PlaylistLookup] = []
     private var recordedAdditions: [Addition] = []
+    private var recordedProductIDs: [ProductIDAddition] = []
+    private let catalog: [String: [MPMediaEntity]]
+
+    struct ProductIDAddition: Equatable {
+        let productID: String
+        let playlist: ObjectIdentifier?
+    }
 
     struct PlaylistLookup: Equatable {
         let id: UUID
@@ -30,8 +37,10 @@ final class MockMusicLibraryService: MusicLibraryServiceProtocol, @unchecked Sen
         items: [MPMediaItem] = [],
         collections: [MPMediaGrouping: [MPMediaItemCollection]] = [:],
         playlist: MPMediaPlaylist? = nil,
+        catalog: [String: [MPMediaEntity]] = [:],
         error: MockError? = nil
     ) {
+        self.catalog = catalog
         self.items = items
         self.collections = collections
         self.playlist = playlist
@@ -48,6 +57,21 @@ final class MockMusicLibraryService: MusicLibraryServiceProtocol, @unchecked Sen
 
     var additions: [Addition] {
         lock.withLock { recordedAdditions }
+    }
+
+    var productIDAdditions: [ProductIDAddition] {
+        lock.withLock { recordedProductIDs }
+    }
+
+    func addItem(productID: String) async throws -> [MPMediaEntity] {
+        lock.withLock { recordedProductIDs.append(ProductIDAddition(productID: productID, playlist: nil)) }
+        if let error { throw error }
+        return catalog[productID] ?? []
+    }
+
+    func add(productID: String, to playlist: MPMediaPlaylist) async throws {
+        lock.withLock { recordedProductIDs.append(ProductIDAddition(productID: productID, playlist: ObjectIdentifier(playlist))) }
+        if let error { throw error }
     }
 
     func playlist(id: UUID, creating metadata: PlaylistMetadata?) async throws -> MPMediaPlaylist? {

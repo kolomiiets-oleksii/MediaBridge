@@ -297,6 +297,23 @@ public final class MusicLibrary: MusicLibraryProtocol {
         try await service.add(songs.map(\.mediaItem), to: playlist.mediaPlaylist)
     }
 
+    @discardableResult
+    public func add(productID: String) async throws -> [Song] {
+        try await checkIfAuthorized()
+        return try await service.addItem(productID: productID).flatMap { entity -> [Song] in
+            switch entity {
+            case let item as MPMediaItem: [Song(item)]
+            case let collection as MPMediaItemCollection: collection.items.map(Song.init)
+            default: []
+            }
+        }
+    }
+
+    public func add(productID: String, to playlist: Playlist) async throws {
+        try await checkIfAuthorized()
+        try await service.add(productID: productID, to: playlist.mediaPlaylist)
+    }
+
     private func checkIfAuthorized() async throws {
         let status = authorizationStatus
 

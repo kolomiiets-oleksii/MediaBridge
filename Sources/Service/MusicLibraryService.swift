@@ -26,15 +26,15 @@ extension MusicLibraryServiceProtocol where Self == MusicLibraryService<MPMediaQ
 ///
 /// For testing or custom implementations, conform to ``MusicLibraryServiceProtocol`` and inject your implementation.
 public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServiceProtocol, Sendable {
-    private let playlistLibrary: @Sendable () -> any PlaylistLibrary
+    private let mediaLibrary: @Sendable () -> any WritableMediaLibrary
 
     /// Creates a service that builds its queries with `T`.
     public init() {
-        playlistLibrary = { MPMediaLibrary.default() }
+        mediaLibrary = { MPMediaLibrary.default() }
     }
 
-    init(playlistLibrary: some PlaylistLibrary & Sendable) {
-        self.playlistLibrary = { playlistLibrary }
+    init(mediaLibrary: some WritableMediaLibrary & Sendable) {
+        self.mediaLibrary = { mediaLibrary }
     }
 
     public func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem] {
@@ -64,7 +64,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
     }
 
     public func playlist(id: UUID, creating metadata: PlaylistMetadata?) async throws -> MPMediaPlaylist? {
-        let library = playlistLibrary()
+        let library = mediaLibrary()
         let playlist = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<UncheckedPlaylist, Error>) in
             library.getPlaylist(with: id, creationMetadata: metadata?.creationMetadata) { playlist, error in
                 if let error {
@@ -79,6 +79,24 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
 
     public func add(_ items: [MPMediaItem], to playlist: MPMediaPlaylist) async throws {
         try await playlist.add(items)
+    }
+
+    public func addItem(productID: String) async throws -> [MPMediaEntity] {
+        let library = mediaLibrary()
+        let added = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<UncheckedEntities, Error>) in
+            library.addItem(withProductID: productID) { entities, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: UncheckedEntities(entities: entities))
+                }
+            }
+        }
+        return added.entities
+    }
+
+    public func add(productID: String, to playlist: MPMediaPlaylist) async throws {
+        try await playlist.addItem(withProductID: productID)
     }
 
     private func split<Element>(
@@ -119,4 +137,8 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
 
 private struct UncheckedPlaylist: @unchecked Sendable {
     let playlist: MPMediaPlaylist?
+}
+
+private struct UncheckedEntities: @unchecked Sendable {
+    let entities: [MPMediaEntity]
 }

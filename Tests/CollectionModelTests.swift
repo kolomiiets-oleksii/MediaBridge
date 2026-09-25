@@ -119,8 +119,10 @@ final class StubPlaylist: MPMediaPlaylist, @unchecked Sendable {
     private let values: [String: Any]
     private let lock = NSLock()
     private var addedItems: [MPMediaItem] = []
+    private var addedProductIDs: [String] = []
 
     var added: [MPMediaItem] { lock.withLock { addedItems } }
+    var productIDs: [String] { lock.withLock { addedProductIDs } }
 
     init(name: String, attributes: MPMediaPlaylistAttribute) {
         values = [
@@ -136,6 +138,11 @@ final class StubPlaylist: MPMediaPlaylist, @unchecked Sendable {
 
     override func add(_ mediaItems: [MPMediaItem], completionHandler: ((Error?) -> Void)? = nil) {
         lock.withLock { addedItems += mediaItems }
+        completionHandler?(nil)
+    }
+
+    override func addItem(withProductID productID: String, completionHandler: ((Error?) -> Void)? = nil) {
+        lock.withLock { addedProductIDs.append(productID) }
         completionHandler?(nil)
     }
 }

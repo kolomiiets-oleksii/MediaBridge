@@ -52,6 +52,18 @@ import MediaPlayer
         func add(_ items: [MPMediaItem], to playlist: MPMediaPlaylist) async throws {
             (playlist as? PreviewPlaylist)?.append(items)
         }
+
+        func addItem(productID: String) async throws -> [MPMediaEntity] {
+            songs(withStoreID: productID)
+        }
+
+        func add(productID: String, to playlist: MPMediaPlaylist) async throws {
+            (playlist as? PreviewPlaylist)?.append(songs(withStoreID: productID))
+        }
+
+        private func songs(withStoreID productID: String) -> [MPMediaItem] {
+            songs.filter { $0.value(forProperty: MPMediaItemPropertyPlaybackStoreID) as? String == productID }
+        }
     }
 
     final class PreviewPlaylist: MPMediaPlaylist, @unchecked Sendable {
