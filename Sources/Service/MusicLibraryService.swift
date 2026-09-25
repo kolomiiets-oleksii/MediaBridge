@@ -71,7 +71,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         if let mediaType = request.mediaType {
             predicates.insert(MediaItemPredicateInfo.mediaType(mediaType).predicate())
         }
-        if let filter = request.filter {
+        for filter in request.filters {
             predicates.insert(filter.predicate.predicate(using: filter.comparison))
         }
         var query = T(filterPredicates: predicates.isEmpty ? nil : predicates)

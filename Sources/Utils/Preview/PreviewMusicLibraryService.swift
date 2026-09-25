@@ -9,8 +9,7 @@ import MediaPlayer
         let playlists: [MPMediaPlaylist]
 
         func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem] {
-            guard let filter = request.filter else { return songs }
-            return songs.filter { filter.predicate.matches($0, using: filter.comparison) }
+            songs.filter { song in request.filters.allSatisfy { $0.matches(song) } }
         }
 
         func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection] {
@@ -21,10 +20,10 @@ import MediaPlayer
                 case .playlist: playlists
                 default: []
                 }
-            guard let filter = request.filter else { return collections }
             return collections.filter { collection in
-                filter.predicate.matches(collection, using: filter.comparison)
-                    || collection.items.contains { filter.predicate.matches($0, using: filter.comparison) }
+                request.filters.allSatisfy { filter in
+                    filter.matches(collection) || collection.items.contains { filter.matches($0) }
+                }
             }
         }
     }

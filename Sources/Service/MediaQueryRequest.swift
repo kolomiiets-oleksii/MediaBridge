@@ -19,6 +19,10 @@ public struct MediaQueryRequest: Sendable, Equatable, CustomStringConvertible {
         public var predicate: MediaItemPredicateInfo
         public var comparison: MPMediaPredicateComparison
 
+        func matches(_ entity: MPMediaEntity) -> Bool {
+            predicate.matches(entity, using: comparison)
+        }
+
         public init(_ predicate: MediaItemPredicateInfo, _ comparison: MPMediaPredicateComparison = .equalTo) {
             self.predicate = predicate
             self.comparison = comparison
@@ -27,21 +31,31 @@ public struct MediaQueryRequest: Sendable, Equatable, CustomStringConvertible {
 
     /// The media type to restrict results to, or `nil` for any type (as playlists need).
     public var mediaType: MPMediaType?
-    /// The predicate to filter by, or `nil` for no filtering.
-    public var filter: Filter?
+    /// The predicates to filter by; results must match all of them.
+    public var filters: [Filter]
     /// How results are grouped into collections.
     public var grouping: MPMediaGrouping
 
+    /// The first filter, or `nil` for none. Setting it replaces every filter.
+    public var filter: Filter? {
+        get { filters.first }
+        set { filters = newValue.map { [$0] } ?? [] }
+    }
+
     public init(mediaType: MPMediaType? = nil, filter: Filter? = nil, grouping: MPMediaGrouping) {
+        self.init(mediaType: mediaType, filters: filter.map { [$0] } ?? [], grouping: grouping)
+    }
+
+    public init(mediaType: MPMediaType? = nil, filters: [Filter], grouping: MPMediaGrouping) {
         self.mediaType = mediaType
-        self.filter = filter
+        self.filters = filters
         self.grouping = grouping
     }
 
     public var description: String {
         var parts: [String] = []
         if let mediaType { parts.append("type \(mediaType.rawValue)") }
-        if let filter { parts.append("\(filter.predicate.description) (\(filter.comparison.rawValue))") }
+        for filter in filters { parts.append("\(filter.predicate.description) (\(filter.comparison.rawValue))") }
         parts.append("grouped by \(grouping.rawValue)")
         return parts.joined(separator: ", ")
     }

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-09-25
+
+### Added
+- `Song`, `Album`, `Artist`, `Genre`, and `Playlist`: zero-copy wrappers over MediaPlayer objects whose properties are read only when accessed, each keeping its `mediaItem`, `mediaCollection`, or `mediaPlaylist`
+- `LibraryQuery`, built from `Song.query` and the other models' `query`, with `filter(_:_:)`, `sorted(by:_:)`, `then(by:_:)`, and `limit(_:)`, run by `fetch(_:)` on any `MusicLibraryProtocol`
+- `LibraryCondition`: `equals` and `contains` run inside MediaPlayer's query where the property supports it; `notEquals`, `greaterThan`, `lessThan`, `atLeast`, and `atMost` run in memory
+- `Song.artwork(size:)`, `Album.artwork(size:)`, and the SwiftUI `ArtworkImage` view, rendering artwork on demand without storing it
+- `MediaQueryRequest.filters` and `init(mediaType:filters:grouping:)` for requests with several predicates; `filter` and `init(mediaType:filter:grouping:)` still work
+
+### Changed
+- `MusicLibraryProtocol`'s default `items(_:)` and `collections(_:)` apply filters after the first in memory
+
 ## [0.12.0] - 2026-09-25
 
 ### Added
