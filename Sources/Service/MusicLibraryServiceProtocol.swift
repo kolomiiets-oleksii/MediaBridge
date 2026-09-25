@@ -28,4 +28,22 @@ public protocol MusicLibraryServiceProtocol: Sendable {
     /// Returns the collections matching `request`, grouped by `request.grouping`, or an empty
     /// array when nothing matches.
     func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection]
+
+    /// Returns the items matching `request` split into index sections.
+    func itemSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItem>]
+
+    /// Returns the collections matching `request` split into index sections.
+    func collectionSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItemCollection>]
+}
+
+extension MusicLibraryServiceProtocol {
+    /// Groups ``items(_:)`` by the first letter of their title for the request's grouping.
+    public func itemSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItem>] {
+        MediaSection.alphabetical(try await items(request), grouping: request.grouping)
+    }
+
+    /// Groups ``collections(_:)`` by the first letter of their title for the request's grouping.
+    public func collectionSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItemCollection>] {
+        MediaSection.alphabetical(try await collections(request), grouping: request.grouping)
+    }
 }

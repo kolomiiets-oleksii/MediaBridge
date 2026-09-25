@@ -205,6 +205,13 @@ public protocol MusicLibraryProtocol: Sendable {
     /// methods are shortcuts over it.
     func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection]
 
+    /// Fetches the items matching a request, split into index sections like the Music app's
+    /// A–Z sidebar.
+    func itemSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItem>]
+
+    /// Fetches the collections matching a request, split into index sections.
+    func collectionSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItemCollection>]
+
     /// Fetches music albums matching a predicate.
     ///
     /// Shortcut for ``mediaItemCollections(ofType:matching:_:groupingType:)`` with `.music`.
@@ -376,6 +383,16 @@ extension MusicLibraryProtocol {
             return try await fetchAll(type, groupingType: request.grouping)
         }
         return try await mediaItems(ofType: type, matching: filter.predicate, filter.comparison, groupingType: request.grouping)
+    }
+
+    /// Groups ``items(_:)`` by the first letter of their title, for conformers written before 0.12.
+    public func itemSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItem>] {
+        MediaSection.alphabetical(try await items(request), grouping: request.grouping)
+    }
+
+    /// Groups ``collections(_:)`` by the first letter of their title, for conformers written before 0.12.
+    public func collectionSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItemCollection>] {
+        MediaSection.alphabetical(try await collections(request), grouping: request.grouping)
     }
 
     /// Routes the request through ``mediaItemCollections(ofType:matching:_:groupingType:)``, for

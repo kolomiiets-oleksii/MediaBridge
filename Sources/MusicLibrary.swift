@@ -152,6 +152,16 @@ public final class MusicLibrary: MusicLibraryProtocol {
         return try await service.collections(request)
     }
 
+    public func itemSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItem>] {
+        try await checkIfAuthorized()
+        return try await service.itemSections(request)
+    }
+
+    public func collectionSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItemCollection>] {
+        try await checkIfAuthorized()
+        return try await service.collectionSections(request)
+    }
+
     // MARK: - Specific calls
 
     public func songs<T: Comparable>(

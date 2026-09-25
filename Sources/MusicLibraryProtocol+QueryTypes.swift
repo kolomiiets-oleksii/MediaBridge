@@ -85,3 +85,33 @@ extension MusicLibraryProtocol {
         try await compilations().sorted(using: KeyPathComparator(sortingKey, order: order))
     }
 }
+
+extension MusicLibraryProtocol {
+    // MARK: - Sections
+
+    /// Fetches all songs split into A–Z index sections by title.
+    ///
+    /// ## Example
+    /// ```swift
+    /// List {
+    ///     ForEach(sections, id: \.title) { section in
+    ///         Section(section.title) {
+    ///             ForEach(section.elements, id: \.persistentID) { Text($0.title ?? "") }
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    public func songSections() async throws -> [MediaSection<MPMediaItem>] {
+        try await itemSections(MediaQueryRequest(mediaType: .music, grouping: .title))
+    }
+
+    /// Fetches all albums split into A–Z index sections by album title.
+    public func albumSections() async throws -> [MediaSection<MPMediaItemCollection>] {
+        try await collectionSections(MediaQueryRequest(mediaType: .music, grouping: .album))
+    }
+
+    /// Fetches all artists split into A–Z index sections by artist name.
+    public func artistSections() async throws -> [MediaSection<MPMediaItemCollection>] {
+        try await collectionSections(MediaQueryRequest(mediaType: .music, grouping: .artist))
+    }
+}

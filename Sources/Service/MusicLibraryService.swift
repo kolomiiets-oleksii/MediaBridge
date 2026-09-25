@@ -37,6 +37,35 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         emptyLoggingResults(query(for: request).collections, of: request)
     }
 
+    public func itemSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItem>] {
+        let query = query(for: request)
+        let items = emptyLoggingResults(query.items, of: request)
+        guard let sections = query.itemSectionRanges else {
+            return MediaSection.alphabetical(items, grouping: request.grouping)
+        }
+        return split(items, into: sections)
+    }
+
+    public func collectionSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItemCollection>] {
+        let query = query(for: request)
+        let collections = emptyLoggingResults(query.collections, of: request)
+        guard let sections = query.collectionSectionRanges else {
+            return MediaSection.alphabetical(collections, grouping: request.grouping)
+        }
+        return split(collections, into: sections)
+    }
+
+    private func split<Element>(
+        _ elements: [Element],
+        into sections: [(title: String, range: Range<Int>)]
+    ) -> [MediaSection<Element>] {
+        sections.compactMap { section in
+            let range = section.range.clamped(to: elements.indices)
+            guard !range.isEmpty else { return nil }
+            return MediaSection(title: section.title, elements: Array(elements[range]))
+        }
+    }
+
     private func query(for request: MediaQueryRequest) -> T {
         var predicates: Set<MPMediaPredicate> = []
         if let mediaType = request.mediaType {
