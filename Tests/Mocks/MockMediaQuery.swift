@@ -65,16 +65,3 @@ final class MockMediaQueryCapturingPredicates: MediaQueryProtocol {
         groupingType = .title
     }
 }
-
-/// Returns collections that are not playlists, to exercise the playlist filtering.
-class MockMediaQueryWithNonPlaylistCollections: MediaQueryProtocol {
-    var items: [MPMediaItem]?
-    var collections: [MPMediaItemCollection]?
-    var groupingType: MPMediaGrouping
-
-    required init(filterPredicates: Set<MPMediaPredicate>? = nil) {
-        items = []
-        collections = [.mock, .mock]
-        groupingType = .title
-    }
-}

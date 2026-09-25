@@ -31,7 +31,7 @@ Add MediaBridge to your project via Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/kolomiiets-oleksii/MediaBridge.git", from: "0.10.2")
+    .package(url: "https://github.com/kolomiiets-oleksii/MediaBridge.git", from: "0.11.0")
 ]
 ```
 
@@ -83,6 +83,12 @@ let rockSongs = try await library.songs(matching: .genre("Rock"), comparisonType
 Both the service layer and authorization manager use production implementations by default (`.live`), but you can provide custom implementations for testing or specialized behavior.
 
 ## Migration
+
+### 0.11.0
+
+- `MusicLibraryServiceProtocol` has two requirements, `items(_:)` and `collections(_:)`, taking a `MediaQueryRequest`. Custom services implement those instead of the six `fetch…` methods; `MusicLibrary` now builds songs, albums, artists, and playlists itself.
+- Previews are `MusicLibrary` instances: use `.preview(songs:albums:artists:playlists:)`. `PreviewMusicLibrary` and the old `fetchedSongs`/`filtered…` parameters still compile, with deprecation warnings.
+- A preview whose access ends up denied or restricted now throws from fetches and `requestAuthorization()`, like the live library.
 
 ### 0.7.0
 

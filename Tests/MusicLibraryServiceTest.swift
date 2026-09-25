@@ -5,166 +5,81 @@ import Testing
 
 @Suite("MusicLibraryService")
 struct MusicLibraryServiceTest {
-    @Test func testFetchAll_NoItems() async throws {
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNoMedia>()
-        let songs = try await service.fetchAll(.music, groupingType: .album)
 
-        #expect(songs.count == 0)
-    }
+    @Suite("Given a request, when the service builds its query")
+    struct QueryBuilding {
+        @Test("with a media type and a filter, then the type uses equalTo and the filter keeps its comparison")
+        func typeAndFilter() async throws {
+            let captures = try await captured(
+                MediaQueryRequest(mediaType: .music, filter: .init(.artist("Taylor Swift"), .contains), grouping: .album))
 
-    @Test func testFetchAll_Albums_NoItems() async throws {
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNoMedia>()
-        let albums = try await service.fetchAllCollections(.music, groupingType: .album)
-
-        #expect(albums.count == 0)
-    }
-
-    @Test func testFetchAll_TwoItems() async throws {
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithFewMedia>()
-        let songs = try await service.fetchAll(.music, groupingType: .album)
-
-        #expect(songs.count == 2)
-    }
-
-    @Test func testFetchAll_Albums_TwoItems() async throws {
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithFewMedia>()
-        let albums = try await service.fetchCollections(.music, with: .title("Title"), comparisonType: .contains, groupingType: .album)
-
-        #expect(albums.count == 2)
-    }
-
-    @Test func testFetch_MediaTypePredicateAlwaysUsesEqualTo() async throws {
-        let captures = QueryCaptures()
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryCapturingPredicates>()
-
-        try await MockMediaQueryCapturingPredicates.$captures.withValue(captures) {
-            _ = try await service.fetch(
-                .music,
-                with: .artist("Taylor Swift"),
-                comparisonType: .contains,
-                groupingType: .album
-            )
+            #expect(captures.propertyPredicate(forProperty: MPMediaItemPropertyMediaType)?.comparisonType == .equalTo)
+            #expect(captures.propertyPredicate(forProperty: MPMediaItemPropertyArtist)?.comparisonType == .contains)
+            #expect(captures.groupingType == .album)
         }
 
-        #expect(captures.propertyPredicate(forProperty: MPMediaItemPropertyMediaType)?.comparisonType == .equalTo)
-        #expect(captures.propertyPredicate(forProperty: MPMediaItemPropertyArtist)?.comparisonType == .contains)
-    }
+        @Test("with only a media type, then only the type predicate is set")
+        func typeOnly() async throws {
+            let captures = try await captured(MediaQueryRequest(mediaType: .music, grouping: .title))
 
-    @Test func testFetch_NoItems() async throws {
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNoMedia>()
-
-        let songs = try await service.fetch(
-            .music,
-            with: .title("Title"),
-            comparisonType: .equalTo,
-            groupingType: .album
-        )
-
-        #expect(songs.count == 0)
-    }
-
-    @Test func testFetch_TwoItems() async throws {
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithFewMedia>()
-
-        let songs = try await service.fetch(
-            .music,
-            with: .title("Title"),
-            comparisonType: .equalTo,
-            groupingType: .album
-        )
-
-        #expect(songs.count == 2)
-    }
-
-    // MARK: - Playlists
-
-    @Test func testFetchAllPlaylists_NilCollections() async throws {
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNilMedia>()
-
-        let playlists = try await service.fetchAllPlaylists()
-
-        #expect(playlists.isEmpty)
-    }
-
-    @Test func testFetchAllPlaylists_SkipsNonPlaylistCollections() async throws {
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNonPlaylistCollections>()
-
-        let playlists = try await service.fetchAllPlaylists()
-
-        #expect(playlists.isEmpty)
-    }
-
-    @Test func testFetchAllPlaylists_UsesPlaylistGrouping() async throws {
-        let captures = QueryCaptures()
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryCapturingPredicates>()
-
-        try await MockMediaQueryCapturingPredicates.$captures.withValue(captures) {
-            _ = try await service.fetchAllPlaylists()
+            #expect(captures.filterPredicates?.count == 1)
+            #expect(captures.propertyPredicate(forProperty: MPMediaItemPropertyMediaType) != nil)
         }
 
-        #expect(captures.groupingType == .playlist)
-        #expect(captures.filterPredicates == nil)
-    }
+        @Test("with no media type and no filter, then the query is unfiltered")
+        func unfiltered() async throws {
+            let captures = try await captured(MediaQueryRequest(grouping: .playlist))
 
-    @Test func testFetchPlaylists_Matching_PassesPredicateAndGrouping() async throws {
-        let captures = QueryCaptures()
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryCapturingPredicates>()
-
-        try await MockMediaQueryCapturingPredicates.$captures.withValue(captures) {
-            _ = try await service.fetchPlaylists(with: .playlistName("Chill"), comparisonType: .contains)
+            #expect(captures.filterPredicates == nil)
+            #expect(captures.groupingType == .playlist)
         }
 
-        #expect(captures.propertyPredicate(forProperty: MPMediaPlaylistPropertyName)?.comparisonType == .contains)
-        #expect(captures.groupingType == .playlist)
+        @Test("with a filter but no media type, then only the filter predicate is set")
+        func filterOnly() async throws {
+            let captures = try await captured(
+                MediaQueryRequest(filter: .init(.playlistName("Chill"), .contains), grouping: .playlist), collections: true)
+
+            #expect(captures.filterPredicates?.count == 1)
+            #expect(captures.propertyPredicate(forProperty: MPMediaPlaylistPropertyName)?.comparisonType == .contains)
+        }
+
+        private func captured(_ request: MediaQueryRequest, collections: Bool = false) async throws -> QueryCaptures {
+            let captures = QueryCaptures()
+            let service = MusicLibraryService<MockMediaQueryCapturingPredicates>()
+            try await MockMediaQueryCapturingPredicates.$captures.withValue(captures) {
+                if collections {
+                    _ = try await service.collections(request)
+                } else {
+                    _ = try await service.items(request)
+                }
+            }
+            return captures
+        }
     }
 
-    @Test func testFetchPlaylists_Matching_NilCollections() async throws {
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNilMedia>()
+    @Suite("Given the query returns")
+    struct QueryResults {
+        let request = MediaQueryRequest(mediaType: .music, grouping: .album)
 
-        let playlists = try await service.fetchPlaylists(with: .playlistName("Chill"), comparisonType: .equalTo)
+        @Test("results, when fetching items or collections, then they are returned")
+        func results() async throws {
+            let service = MusicLibraryService<MockMediaQueryWithFewMedia>()
+            #expect(try await service.items(request).count == 2)
+            #expect(try await service.collections(request).count == 2)
+        }
 
-        #expect(playlists.isEmpty)
-    }
+        @Test("nothing, when fetching items or collections, then the result is empty")
+        func empty() async throws {
+            let service = MusicLibraryService<MockMediaQueryWithNoMedia>()
+            #expect(try await service.items(request).isEmpty)
+            #expect(try await service.collections(request).isEmpty)
+        }
 
-    @Test func testFetch_NilItems() async throws {
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNilMedia>()
-
-        let items = try await service.fetch(
-            .music,
-            with: .title("Title"),
-            comparisonType: .equalTo,
-            groupingType: .album
-        )
-
-        #expect(items.isEmpty)
-    }
-
-    @Test func testFetchAll_NilItems() async throws {
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNilMedia>()
-
-        let items = try await service.fetchAll(.music, groupingType: .album)
-
-        #expect(items.isEmpty)
-    }
-
-    @Test func testFetchAll_Albums_NilItems() async throws {
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNilMedia>()
-
-        let collections = try await service.fetchAllCollections(.music, groupingType: .album)
-
-        #expect(collections.isEmpty)
-    }
-
-    @Test func testFetch_Album_NilItems() async throws {
-        let service: any MusicLibraryServiceProtocol = MusicLibraryService<MockMediaQueryWithNilMedia>()
-
-        let collections = try await service.fetchCollections(
-            .music,
-            with: .title("Title"),
-            comparisonType: .contains,
-            groupingType: .album
-        )
-
-        #expect(collections.isEmpty)
+        @Test("nil, when fetching items or collections, then the result is empty instead of an error")
+        func nilResults() async throws {
+            let service = MusicLibraryService<MockMediaQueryWithNilMedia>()
+            #expect(try await service.items(request).isEmpty)
+            #expect(try await service.collections(request).isEmpty)
+        }
     }
 }

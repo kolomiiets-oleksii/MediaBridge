@@ -108,7 +108,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
 
     public func fetchAll(_ type: MPMediaType, groupingType: MPMediaGrouping) async throws -> [MPMediaItem] {
         try await checkIfAuthorized()
-        return try await service.fetchAll(type, groupingType: groupingType)
+        return try await service.items(MediaQueryRequest(mediaType: type, grouping: groupingType))
     }
 
     public func mediaItems(
@@ -118,7 +118,8 @@ public final class MusicLibrary: MusicLibraryProtocol {
         groupingType: MPMediaGrouping
     ) async throws -> [MPMediaItem] {
         try await checkIfAuthorized()
-        return try await service.fetch(type, with: predicate, comparisonType: comparisonType, groupingType: groupingType)
+        return try await service.items(
+            MediaQueryRequest(mediaType: type, filter: .init(predicate, comparisonType), grouping: groupingType))
     }
 
     public func mediaItemCollections(
@@ -128,7 +129,8 @@ public final class MusicLibrary: MusicLibraryProtocol {
         groupingType: MPMediaGrouping
     ) async throws -> [MPMediaItemCollection] {
         try await checkIfAuthorized()
-        return try await service.fetchCollections(type, with: predicate, comparisonType: comparisonType, groupingType: groupingType)
+        return try await service.collections(
+            MediaQueryRequest(mediaType: type, filter: .init(predicate, comparisonType), grouping: groupingType))
     }
 
     // MARK: - Specific calls
@@ -138,7 +140,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
         order: SortOrder
     ) async throws -> [MPMediaItem] {
         try await fetchSorted("songs", sortedBy: sortingKey, order: order) {
-            try await self.service.fetchAll(.music, groupingType: .title)
+            try await self.service.items(MediaQueryRequest(mediaType: .music, grouping: .title))
         }
     }
 
@@ -147,7 +149,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
         order: SortOrder
     ) async throws -> [MPMediaItemCollection] {
         try await fetchSorted("albums", sortedBy: sortingKey, order: order) {
-            try await self.service.fetchAllCollections(.music, groupingType: .album)
+            try await self.service.collections(MediaQueryRequest(mediaType: .music, grouping: .album))
         }
     }
 
@@ -171,7 +173,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
         order: SortOrder
     ) async throws -> [MPMediaItemCollection] {
         try await fetchSorted("artists", sortedBy: sortingKey, order: order) {
-            try await self.service.fetchAllCollections(.music, groupingType: .artist)
+            try await self.service.collections(MediaQueryRequest(mediaType: .music, grouping: .artist))
         }
     }
 
@@ -188,7 +190,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
         order: SortOrder
     ) async throws -> [MPMediaPlaylist] {
         try await fetchSorted("playlists", sortedBy: sortingKey, order: order) {
-            try await self.service.fetchAllPlaylists()
+            try await self.playlists(from: MediaQueryRequest(grouping: .playlist))
         }
     }
 
@@ -197,10 +199,19 @@ public final class MusicLibrary: MusicLibraryProtocol {
         _ comparisonType: MPMediaPredicateComparison
     ) async throws -> [MPMediaPlaylist] {
         try await checkIfAuthorized()
-        return try await service.fetchPlaylists(with: predicate, comparisonType: comparisonType)
+        return try await playlists(from: MediaQueryRequest(filter: .init(predicate, comparisonType), grouping: .playlist))
     }
 
     // MARK: - Private methods
+
+    private func playlists(from request: MediaQueryRequest) async throws -> [MPMediaPlaylist] {
+        let collections = try await service.collections(request)
+        let playlists = collections.compactMap { $0 as? MPMediaPlaylist }
+        if playlists.count != collections.count {
+            log.debug("Discarded \(collections.count - playlists.count) non-playlist collections for \(request.description)")
+        }
+        return playlists
+    }
 
     /// Checks authorization, runs the given fetch, and applies the optional sort key.
     ///

@@ -1,109 +1,50 @@
+import Foundation
 import MediaBridge
 import MediaPlayer
 
-final class MockMusicLibraryService: MusicLibraryServiceProtocol {
-    typealias Q = MPMediaQuery
-
+final class MockMusicLibraryService: MusicLibraryServiceProtocol, @unchecked Sendable {
     enum MockError: Error {
-        case noSong, noSongs, noAlbum, noAlbums, noArtist, noArtists, noPlaylist, noPlaylists
+        case failed
     }
+
+    private let lock = NSLock()
+    private let items: [MPMediaItem]
+    private let collections: [MPMediaGrouping: [MPMediaItemCollection]]
+    private let error: MockError?
+    private var recorded: [MediaQueryRequest] = []
 
     init(
-        fetchSongError: MockError? = nil,
-        fetchSongsError: MockError? = nil,
-        songs: [MPMediaItem] = [.mock],
-        albums: [MPMediaItemCollection] = [.mock],
-        albumsError: MockError? = nil,
-        fetchAlbumsError: MockError? = nil,
-        artists: [MPMediaItemCollection] = [.mock],
-        artistsError: MockError? = nil,
-        fetchArtistsError: MockError? = nil,
-        playlists: [MPMediaPlaylist] = [],
-        playlistsError: MockError? = nil,
-        fetchPlaylistsError: MockError? = nil
+        items: [MPMediaItem] = [],
+        collections: [MPMediaGrouping: [MPMediaItemCollection]] = [:],
+        error: MockError? = nil
     ) {
-        self.fetchSongError = fetchSongError
-        self.fetchSongsError = fetchSongsError
-        self.songs = songs
-        self.albums = albums
-        self.albumsError = albumsError
-        self.fetchAlbumsError = fetchAlbumsError
-        self.artists = artists
-        self.artistsError = artistsError
-        self.fetchArtistsError = fetchArtistsError
-        self.playlists = playlists
-        self.playlistsError = playlistsError
-        self.fetchPlaylistsError = fetchPlaylistsError
+        self.items = items
+        self.collections = collections
+        self.error = error
     }
 
-    let fetchSongsError: MockError?
-    func fetchAll(_ type: MPMediaType, groupingType: MPMediaGrouping) async throws(MockError) -> [MPMediaItem] {
-        guard let fetchSongsError = fetchSongsError else { return [] }
-        throw fetchSongsError
+    var requests: [MediaQueryRequest] {
+        lock.withLock { recorded }
     }
 
-    let songs: [MPMediaItem]
-    let fetchSongError: MockError?
-    func fetch(
-        _ type: MPMediaType,
-        with predicate: MediaItemPredicateInfo,
-        comparisonType: MPMediaPredicateComparison,
-        groupingType: MPMediaGrouping
-    ) async throws(MockError) -> [MPMediaItem] {
-        guard let fetchSongError = fetchSongError else { return songs }
-        throw fetchSongError
+    func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem] {
+        try record(request)
+        return items
     }
 
-    let albums: [MPMediaItemCollection]
-    let albumsError: MockError?
-    let artists: [MPMediaItemCollection]
-    let artistsError: MockError?
-    func fetchCollections(
-        _ type: MPMediaType,
-        with predicate: MediaBridge.MediaItemPredicateInfo,
-        comparisonType: MPMediaPredicateComparison,
-        groupingType: MPMediaGrouping
-    ) async throws -> [MPMediaItemCollection] {
-        if groupingType == .artist {
-            guard let artistsError = artistsError else { return artists }
-            throw artistsError
-        }
-        guard let albumsError = albumsError else { return albums }
-        throw albumsError
+    func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection] {
+        try record(request)
+        return collections[request.grouping] ?? []
     }
 
-    let fetchAlbumsError: MockError?
-    let fetchArtistsError: MockError?
-    func fetchAllCollections(_ type: MPMediaType, groupingType: MPMediaGrouping) async throws -> [MPMediaItemCollection] {
-        if groupingType == .artist {
-            guard let fetchArtistsError = fetchArtistsError else { return [] }
-            throw fetchArtistsError
-        }
-        guard let fetchAlbumsError = fetchAlbumsError else { return [] }
-        throw fetchAlbumsError
-    }
-
-    let playlists: [MPMediaPlaylist]
-    let fetchPlaylistsError: MockError?
-    func fetchAllPlaylists() async throws(MockError) -> [MPMediaPlaylist] {
-        guard let fetchPlaylistsError = fetchPlaylistsError else { return playlists }
-        throw fetchPlaylistsError
-    }
-
-    let playlistsError: MockError?
-    func fetchPlaylists(
-        with predicate: MediaItemPredicateInfo,
-        comparisonType: MPMediaPredicateComparison
-    ) async throws(MockError) -> [MPMediaPlaylist] {
-        guard let playlistsError = playlistsError else { return playlists }
-        throw playlistsError
+    private func record(_ request: MediaQueryRequest) throws {
+        lock.withLock { recorded.append(request) }
+        if let error { throw error }
     }
 }
 
 extension MusicLibraryServiceProtocol where Self == MockMusicLibraryService {
-    static var mock: MockMusicLibraryService {
-        MockMusicLibraryService(albums: [], artists: [], playlists: [])
-    }
+    static var mock: MockMusicLibraryService { MockMusicLibraryService() }
 }
 
 extension MPMediaItem: @unchecked @retroactive Sendable {}
