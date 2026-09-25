@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-09-25
+
+### Changed
+- `Album`, `Artist`, `Genre` and `Playlist` each live in their own source file. No API changes.
+- The Example app uses the 0.13 API: `Song`, `LibraryQuery` sorting, the library's `ArtworkImage`, and `changes` to reload.
+
+### Added
+- Example app: a `-demoLibrary` launch argument (off by default in the shared scheme) that runs on sample songs with artwork, so the full UI works on a simulator.
+- Example app: an Open Settings button when music library access is denied.
+
+### Fixed
+- Example app: the music library usage description now says why access is needed.
+
 ## [0.13.0] - 2026-09-25
 
 ### Added
