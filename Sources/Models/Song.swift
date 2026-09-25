@@ -20,44 +20,38 @@ public struct Song: Identifiable, Hashable, @unchecked Sendable {
         self.mediaItem = mediaItem
     }
 
-    public var id: MPMediaEntityPersistentID { number(MPMediaItemPropertyPersistentID)?.uint64Value ?? 0 }
+    public var id: MPMediaEntityPersistentID { reader.number(MPMediaItemPropertyPersistentID)?.uint64Value ?? 0 }
 
-    public var title: String? { value(MPMediaItemPropertyTitle) }
-    public var artist: String? { value(MPMediaItemPropertyArtist) }
-    public var albumTitle: String? { value(MPMediaItemPropertyAlbumTitle) }
-    public var albumArtist: String? { value(MPMediaItemPropertyAlbumArtist) }
-    public var genre: String? { value(MPMediaItemPropertyGenre) }
-    public var composer: String? { value(MPMediaItemPropertyComposer) }
+    public var title: String? { reader.value(MPMediaItemPropertyTitle) }
+    public var artist: String? { reader.value(MPMediaItemPropertyArtist) }
+    public var albumTitle: String? { reader.value(MPMediaItemPropertyAlbumTitle) }
+    public var albumArtist: String? { reader.value(MPMediaItemPropertyAlbumArtist) }
+    public var genre: String? { reader.value(MPMediaItemPropertyGenre) }
+    public var composer: String? { reader.value(MPMediaItemPropertyComposer) }
 
-    public var playCount: Int { number(MPMediaItemPropertyPlayCount)?.intValue ?? 0 }
-    public var skipCount: Int { number(MPMediaItemPropertySkipCount)?.intValue ?? 0 }
+    public var playCount: Int { reader.number(MPMediaItemPropertyPlayCount)?.intValue ?? 0 }
+    public var skipCount: Int { reader.number(MPMediaItemPropertySkipCount)?.intValue ?? 0 }
     /// The user's rating, from 0 (unrated) to 5.
-    public var rating: Int { number(MPMediaItemPropertyRating)?.intValue ?? 0 }
+    public var rating: Int { reader.number(MPMediaItemPropertyRating)?.intValue ?? 0 }
     /// The playback duration in seconds.
-    public var duration: TimeInterval { number(MPMediaItemPropertyPlaybackDuration)?.doubleValue ?? 0 }
+    public var duration: TimeInterval { reader.number(MPMediaItemPropertyPlaybackDuration)?.doubleValue ?? 0 }
 
-    public var releaseDate: Date? { value(MPMediaItemPropertyReleaseDate) }
-    public var dateAdded: Date? { value(MPMediaItemPropertyDateAdded) }
-    public var lastPlayedDate: Date? { value(MPMediaItemPropertyLastPlayedDate) }
+    public var releaseDate: Date? { reader.value(MPMediaItemPropertyReleaseDate) }
+    public var dateAdded: Date? { reader.value(MPMediaItemPropertyDateAdded) }
+    public var lastPlayedDate: Date? { reader.value(MPMediaItemPropertyLastPlayedDate) }
 
-    public var isExplicit: Bool { number(MPMediaItemPropertyIsExplicit)?.boolValue ?? false }
-    public var isCloudItem: Bool { number(MPMediaItemPropertyIsCloudItem)?.boolValue ?? false }
-    public var hasProtectedAsset: Bool { number(MPMediaItemPropertyHasProtectedAsset)?.boolValue ?? false }
-    public var isCompilation: Bool { number(MPMediaItemPropertyIsCompilation)?.boolValue ?? false }
+    public var isExplicit: Bool { reader.number(MPMediaItemPropertyIsExplicit)?.boolValue ?? false }
+    public var isCloudItem: Bool { reader.number(MPMediaItemPropertyIsCloudItem)?.boolValue ?? false }
+    public var hasProtectedAsset: Bool { reader.number(MPMediaItemPropertyHasProtectedAsset)?.boolValue ?? false }
+    public var isCompilation: Bool { reader.number(MPMediaItemPropertyIsCompilation)?.boolValue ?? false }
 
-    public var albumID: MPMediaEntityPersistentID { number(MPMediaItemPropertyAlbumPersistentID)?.uint64Value ?? 0 }
-    public var artistID: MPMediaEntityPersistentID { number(MPMediaItemPropertyArtistPersistentID)?.uint64Value ?? 0 }
+    public var albumID: MPMediaEntityPersistentID { reader.number(MPMediaItemPropertyAlbumPersistentID)?.uint64Value ?? 0 }
+    public var artistID: MPMediaEntityPersistentID { reader.number(MPMediaItemPropertyArtistPersistentID)?.uint64Value ?? 0 }
 
     public static func == (lhs: Song, rhs: Song) -> Bool { lhs.id == rhs.id }
     public func hash(into hasher: inout Hasher) { hasher.combine(id) }
 
-    private func value<T>(_ property: String) -> T? {
-        mediaItem.value(forProperty: property) as? T
-    }
-
-    private func number(_ property: String) -> NSNumber? {
-        mediaItem.value(forProperty: property) as? NSNumber
-    }
+    private var reader: EntityReader { EntityReader(mediaItem) }
 }
 
 extension Song: LibraryElement {
