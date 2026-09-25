@@ -68,3 +68,20 @@ extension MusicLibraryProtocol {
         try await audiobooks().sorted(using: KeyPathComparator(sortingKey, order: order))
     }
 }
+
+extension MusicLibraryProtocol {
+    // MARK: - Compilations
+
+    /// Fetches compilation albums, such as soundtracks and various-artists records.
+    public func compilations() async throws -> [MPMediaItemCollection] {
+        try await collections(MediaQueryRequest(mediaType: .music, filter: .init(.isCompilation(true)), grouping: .album))
+    }
+
+    /// Fetches compilation albums sorted by a key path.
+    public func compilations<T: Comparable>(
+        sortedBy sortingKey: SortKey<MPMediaItemCollection, T>,
+        order: SortOrder
+    ) async throws -> [MPMediaItemCollection] {
+        try await compilations().sorted(using: KeyPathComparator(sortingKey, order: order))
+    }
+}

@@ -62,6 +62,30 @@ public enum MediaItemPredicateInfo: Sendable, Equatable {
     /// Filter by playlist's persistent ID.
     case playlistID(UInt64)
 
+    /// Filter by whether the item lives in iCloud rather than on the device.
+    case isCloudItem(Bool)
+
+    /// Filter by whether the item is DRM-protected and can't be read as an asset.
+    case hasProtectedAsset(Bool)
+
+    /// Filter by whether the item belongs to a compilation album.
+    case isCompilation(Bool)
+
+    /// Filter by play count.
+    case playCount(Int)
+
+    /// Filter by podcast title.
+    case podcastTitle(String)
+
+    /// Filter by podcast's persistent ID.
+    case podcastID(UInt64)
+
+    /// Filter playlists by attributes, such as `.smart` or `.genius`.
+    case playlistAttributes(MPMediaPlaylistAttribute)
+
+    /// Filter playlists by their iCloud Music Library identifier.
+    case playlistCloudID(String)
+
     /// Converts this predicate info to an `MPMediaPropertyPredicate`.
     ///
     /// This method is typically called internally by library methods, but can be used
@@ -128,6 +152,17 @@ public enum MediaItemPredicateInfo: Sendable, Equatable {
 
         case .playlistName: MPMediaPlaylistPropertyName
         case .playlistID: MPMediaPlaylistPropertyPersistentID
+
+        case .isCloudItem: MPMediaItemPropertyIsCloudItem
+        case .hasProtectedAsset: MPMediaItemPropertyHasProtectedAsset
+        case .isCompilation: MPMediaItemPropertyIsCompilation
+        case .playCount: MPMediaItemPropertyPlayCount
+
+        case .podcastTitle: MPMediaItemPropertyPodcastTitle
+        case .podcastID: MPMediaItemPropertyPodcastPersistentID
+
+        case .playlistAttributes: MPMediaPlaylistPropertyPlaylistAttributes
+        case .playlistCloudID: MPMediaPlaylistPropertyCloudGlobalID
         }
     }
 
@@ -154,6 +189,17 @@ public enum MediaItemPredicateInfo: Sendable, Equatable {
 
         case .playlistName(let name): name
         case .playlistID(let id): id
+
+        case .isCloudItem(let flag): flag
+        case .hasProtectedAsset(let flag): flag
+        case .isCompilation(let flag): flag
+        case .playCount(let count): count
+
+        case .podcastTitle(let title): title
+        case .podcastID(let id): id
+
+        case .playlistAttributes(let attributes): attributes.rawValue
+        case .playlistCloudID(let id): id
         }
     }
 }
