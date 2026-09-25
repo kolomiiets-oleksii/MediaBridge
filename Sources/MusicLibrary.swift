@@ -142,6 +142,16 @@ public final class MusicLibrary: MusicLibraryProtocol {
             MediaQueryRequest(mediaType: type, filter: .init(predicate, comparisonType), grouping: groupingType))
     }
 
+    public func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem] {
+        try await checkIfAuthorized()
+        return try await service.items(request)
+    }
+
+    public func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection] {
+        try await checkIfAuthorized()
+        return try await service.collections(request)
+    }
+
     // MARK: - Specific calls
 
     public func songs<T: Comparable>(

@@ -187,6 +187,24 @@ public protocol MusicLibraryProtocol: Sendable {
         groupingType: MPMediaGrouping
     ) async throws -> [MPMediaItemCollection]
 
+    /// Fetches the media items matching a request.
+    ///
+    /// The most general query: every item method is a shortcut over it.
+    ///
+    /// ## Example
+    /// ```swift
+    /// let jazz = try await library.items(
+    ///     MediaQueryRequest(mediaType: .music, filter: .init(.genre("Jazz")), grouping: .title)
+    /// )
+    /// ```
+    func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem]
+
+    /// Fetches the collections matching a request, grouped by `request.grouping`.
+    ///
+    /// The most general collection query: albums, artists, genres, and the other collection
+    /// methods are shortcuts over it.
+    func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection]
+
     /// Fetches music albums matching a predicate.
     ///
     /// Shortcut for ``mediaItemCollections(ofType:matching:_:groupingType:)`` with `.music`.
@@ -349,6 +367,25 @@ public protocol MusicLibraryProtocol: Sendable {
 extension MusicLibraryProtocol {
     /// A stream that never yields, for conformers that don't observe the library.
     public var changes: AsyncStream<Date> { SilentLibraryChanges().changes() }
+
+    /// Routes the request through ``fetchAll(_:groupingType:)`` or
+    /// ``mediaItems(ofType:matching:_:groupingType:)``, for conformers written before 0.12.
+    public func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem] {
+        let type = request.mediaType ?? .any
+        guard let filter = request.filter else {
+            return try await fetchAll(type, groupingType: request.grouping)
+        }
+        return try await mediaItems(ofType: type, matching: filter.predicate, filter.comparison, groupingType: request.grouping)
+    }
+
+    /// Routes the request through ``mediaItemCollections(ofType:matching:_:groupingType:)``, for
+    /// conformers written before 0.12. An unfiltered request filters by its media type.
+    public func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection] {
+        let type = request.mediaType ?? .any
+        let filter = request.filter ?? .init(.mediaType(type))
+        return try await mediaItemCollections(
+            ofType: type, matching: filter.predicate, filter.comparison, groupingType: request.grouping)
+    }
 
     // MARK: - Deprecated
 
