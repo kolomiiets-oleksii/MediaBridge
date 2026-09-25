@@ -50,7 +50,8 @@ import MediaPlayer
         ) -> MusicLibrary {
             MusicLibrary(
                 auth: PreviewAuthorizationManager(status: authStatus, statusAfterRequest: authStatusAfterRequest),
-                service: PreviewMusicLibraryService(songs: songs, albums: albums, artists: artists, playlists: playlists)
+                service: PreviewMusicLibraryService(songs: songs, albums: albums, artists: artists, playlists: playlists),
+                changes: SilentLibraryChanges()
             )
         }
 

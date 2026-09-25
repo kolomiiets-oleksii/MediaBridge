@@ -59,6 +59,7 @@ import MediaPlayer
 public final class MusicLibrary: MusicLibraryProtocol {
     private let auth: any AuthorizationManagerProtocol
     private let service: any MusicLibraryServiceProtocol
+    private let changeSource: any LibraryChangesProtocol
 
     public var authorizationStatus: MPMediaLibraryAuthorizationStatus {
         auth.status()
@@ -75,6 +76,8 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///     Defaults to `.live` for production use. Pass a mock implementation for testing.
     ///   - service: The service layer for querying media items.
     ///     Defaults to `.live` for production use. Pass a mock implementation for testing.
+    ///   - changes: The source behind ``changes``. Defaults to `.live`, which observes the
+    ///     device library.
     ///
     /// ## Examples
     ///
@@ -91,10 +94,16 @@ public final class MusicLibrary: MusicLibraryProtocol {
     /// ```
     public init(
         auth: any AuthorizationManagerProtocol = .live,
-        service: any MusicLibraryServiceProtocol = .live
+        service: any MusicLibraryServiceProtocol = .live,
+        changes: any LibraryChangesProtocol = .live
     ) {
         self.auth = auth
         self.service = service
+        self.changeSource = changes
+    }
+
+    public var changes: AsyncStream<Date> {
+        changeSource.changes()
     }
 
     // MARK: - Authorization

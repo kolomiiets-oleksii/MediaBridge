@@ -24,7 +24,8 @@ import MediaPlayer
             self.init(
                 auth: PreviewAuthorizationManager(status: status, statusAfterRequest: statusAfterRequest),
                 service: PreviewMusicLibraryService(
-                    songs: songs, albums: filteredAlbums, artists: filteredArtists, playlists: filteredPlaylists)
+                    songs: songs, albums: filteredAlbums, artists: filteredArtists, playlists: filteredPlaylists),
+                changes: SilentLibraryChanges()
             )
         }
     }

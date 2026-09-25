@@ -43,6 +43,22 @@ public protocol MusicLibraryProtocol: Sendable {
     @discardableResult
     func requestAuthorization() async throws -> MPMediaLibraryAuthorizationStatus
 
+    /// Yields the library's modification date each time the music library changes.
+    ///
+    /// Re-run your queries when it yields; previously fetched items may be stale. Each access
+    /// starts a new observation, which ends when you stop iterating. Changes only arrive once
+    /// access is authorized.
+    ///
+    /// ## Example
+    /// ```swift
+    /// .task {
+    ///     for await _ in library.changes {
+    ///         songs = (try? await library.songs()) ?? []
+    ///     }
+    /// }
+    /// ```
+    var changes: AsyncStream<Date> { get }
+
     /// Fetches all media items of a specific type, grouped by `groupingType`.
     ///
     /// - Parameters:
@@ -331,6 +347,9 @@ public protocol MusicLibraryProtocol: Sendable {
 }
 
 extension MusicLibraryProtocol {
+    /// A stream that never yields, for conformers that don't observe the library.
+    public var changes: AsyncStream<Date> { SilentLibraryChanges().changes() }
+
     // MARK: - Deprecated
 
     @available(*, deprecated, renamed: "songs(sortedBy:order:)")
