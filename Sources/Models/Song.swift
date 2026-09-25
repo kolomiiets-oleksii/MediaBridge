@@ -59,3 +59,30 @@ public struct Song: Identifiable, Hashable, @unchecked Sendable {
         mediaItem.value(forProperty: property) as? NSNumber
     }
 }
+
+extension Song: LibraryElement {
+    public static var baseRequest: MediaQueryRequest { MediaQueryRequest(mediaType: .music, grouping: .title) }
+
+    public static func fetch(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws -> [Song] {
+        try await library.items(request).map(Song.init)
+    }
+
+    public static func predicate(for keyPath: AnyKeyPath, value: Any) -> MediaItemPredicateInfo? {
+        switch (keyPath, value) {
+        case (\Song.title, let value as String): .title(value)
+        case (\Song.artist, let value as String): .artist(value)
+        case (\Song.albumTitle, let value as String): .albumTitle(value)
+        case (\Song.albumArtist, let value as String): .albumArtist(value)
+        case (\Song.genre, let value as String): .genre(value)
+        case (\Song.composer, let value as String): .composer(value)
+        case (\Song.playCount, let value as Int): .playCount(value)
+        case (\Song.isCloudItem, let value as Bool): .isCloudItem(value)
+        case (\Song.hasProtectedAsset, let value as Bool): .hasProtectedAsset(value)
+        case (\Song.isCompilation, let value as Bool): .isCompilation(value)
+        case (\Song.id, let value as UInt64): .persistentID(value)
+        case (\Song.albumID, let value as UInt64): .albumID(value)
+        case (\Song.artistID, let value as UInt64): .artistID(value)
+        default: nil
+        }
+    }
+}
