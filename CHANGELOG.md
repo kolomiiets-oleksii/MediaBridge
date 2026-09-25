@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.3] - 2026-09-25
+
+### Fixed
+- `MusicLibrary` methods inherit their documentation from `MusicLibraryProtocol` instead of carrying stale copies; `requestAuthorization()` no longer claims to return a non-authorized status
+
 ## [0.10.2] - 2026-09-22
 
 ### Added

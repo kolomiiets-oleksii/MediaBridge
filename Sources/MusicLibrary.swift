@@ -99,14 +99,6 @@ public final class MusicLibrary: MusicLibraryProtocol {
 
     // MARK: - Authorization
 
-    /// Requests music library access authorization from the user.
-    ///
-    /// Presents the system authorization prompt if the user hasn't yet decided.
-    /// If authorization is already determined, returns the current status without prompting.
-    /// Delegates to the underlying ``AuthorizationManagerProtocol`` implementation.
-    ///
-    /// - Returns: The authorization status after the request
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if the request fails or is denied
     @discardableResult
     public func requestAuthorization() async throws -> MPMediaLibraryAuthorizationStatus {
         try await auth.authorize()
@@ -114,34 +106,11 @@ public final class MusicLibrary: MusicLibraryProtocol {
 
     // MARK: - General Media Queries
 
-    /// Fetches all media items of a specific type.
-    ///
-    /// Retrieves all media items matching the specified type from the device's music library.
-    /// Automatically checks authorization status before making the query.
-    ///
-    /// - Parameters:
-    ///   - type: The type of media to fetch (typically `.music`)
-    ///   - groupingType: How to group the returned items (`.title`, `.album`, `.artist`, etc.)
-    /// - Returns: Array of all media items matching the specified type
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
     public func fetchAll(_ type: MPMediaType, groupingType: MPMediaGrouping) async throws -> [MPMediaItem] {
         try await checkIfAuthorized()
         return try await service.fetchAll(type, groupingType: groupingType)
     }
 
-    /// Fetches media items of a specific type matching a predicate.
-    ///
-    /// Queries the music library for items matching the provided type and predicate.
-    /// This is the most flexible method, allowing you to fetch any media type (music, podcasts, audiobooks)
-    /// with custom filtering and grouping. Automatically checks authorization before querying.
-    ///
-    /// - Parameters:
-    ///   - type: The type of media to fetch (`.music`, `.podcast`, etc.)
-    ///   - predicate: The predicate to filter items (e.g., `.artist("Taylor Swift")`, `.genre("Rock")`)
-    ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
-    ///   - groupingType: How to group the returned items
-    /// - Returns: Array of media items matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
     public func mediaItems(
         ofType type: MPMediaType,
         matching predicate: MediaItemPredicateInfo,
@@ -152,19 +121,6 @@ public final class MusicLibrary: MusicLibraryProtocol {
         return try await service.fetch(type, with: predicate, comparisonType: comparisonType, groupingType: groupingType)
     }
 
-    /// Fetches media item collections of a specific type matching a predicate.
-    ///
-    /// Queries the music library for item collections matching the provided type and predicate.
-    /// Returns grouped results (e.g., albums, artists) rather than individual items.
-    /// Automatically checks authorization before querying.
-    ///
-    /// - Parameters:
-    ///   - type: The type of media to fetch (`.music`, `.podcast`, etc.)
-    ///   - predicate: The predicate to filter collections (e.g., `.albumArtist("The Beatles")`)
-    ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
-    ///   - groupingType: How to group the returned collections (typically `.album` or `.albumArtist`)
-    /// - Returns: Array of media item collections matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
     public func mediaItemCollections(
         ofType type: MPMediaType,
         matching predicate: MediaItemPredicateInfo,
@@ -202,28 +158,6 @@ public final class MusicLibrary: MusicLibraryProtocol {
         return try await mediaItems(ofType: .music, matching: predicate, comparisonType, groupingType: .title)
     }
 
-    /// Fetches album collections matching a predicate.
-    ///
-    /// Convenience method for fetching music albums grouped by the specified grouping type.
-    /// This is a specialized version of ``mediaItemCollections(ofType:matching:_:groupingType:)``
-    /// that's pre-configured for music albums.
-    ///
-    /// - Parameters:
-    ///   - predicate: The predicate to filter albums (e.g., `.albumArtist("The Beatles")`, `.genre("Rock")`)
-    ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
-    ///   - groupingType: How to group the returned collections (typically `.album` or `.albumArtist`)
-    /// - Returns: Array of album collections matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
-    ///
-    /// ## Example
-    /// ```swift
-    /// let library = MusicLibrary()
-    /// let beatlesAlbums = try await library.albums(
-    ///     matching: .albumArtist("The Beatles"),
-    ///     .equalTo,
-    ///     groupingType: .album
-    /// )
-    /// ```
     public func albums(
         matching predicate: MediaItemPredicateInfo,
         _ comparisonType: MPMediaPredicateComparison,
@@ -241,28 +175,6 @@ public final class MusicLibrary: MusicLibraryProtocol {
         }
     }
 
-    /// Fetches artist collections matching a predicate.
-    ///
-    /// Convenience method for fetching music artists grouped by the specified grouping type.
-    /// This is a specialized version of ``mediaItemCollections(ofType:matching:_:groupingType:)``
-    /// that's pre-configured for music artists.
-    ///
-    /// - Parameters:
-    ///   - predicate: The predicate to filter artists (e.g., `.artist("The Beatles")`, `.genre("Rock")`)
-    ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
-    ///   - groupingType: How to group the returned collections (typically `.artist` or `.albumArtist`)
-    /// - Returns: Array of artist collections matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
-    ///
-    /// ## Example
-    /// ```swift
-    /// let library = MusicLibrary()
-    /// let artists = try await library.artists(
-    ///     matching: .artist("The Beatles"),
-    ///     .equalTo,
-    ///     groupingType: .artist
-    /// )
-    /// ```
     public func artists(
         matching predicate: MediaItemPredicateInfo,
         _ comparisonType: MPMediaPredicateComparison,
@@ -280,33 +192,6 @@ public final class MusicLibrary: MusicLibraryProtocol {
         }
     }
 
-    /// Fetches playlists matching a predicate.
-    ///
-    /// Convenience method for fetching playlists by name, ID, or other filterable property.
-    /// Returns the concrete `MPMediaPlaylist` type for full access to playlist-specific properties
-    /// such as `name`, `playlistAttributes`, `descriptionText`, and `seedItems`.
-    ///
-    /// Artwork is available via `playlist.representativeItem?.artwork` — the cover art of
-    /// the first track in the playlist, which is how the system Music app surfaces it.
-    ///
-    /// - Parameters:
-    ///   - predicate: The predicate to filter playlists (e.g., `.playlistName("Favorites")`, `.playlistID(123)`)
-    ///   - comparisonType: How to compare the predicate value (`.equalTo`, `.contains`, etc.)
-    /// - Returns: Array of playlists matching the criteria
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted after the automatic authorization request
-    ///
-    /// ## Example
-    /// ```swift
-    /// let library = MusicLibrary()
-    /// let chillPlaylists = try await library.playlists(
-    ///     matching: .playlistName("Chill"),
-    ///     .contains
-    /// )
-    /// for playlist in chillPlaylists {
-    ///     let artwork = playlist.representativeItem?.artwork
-    ///     let isSmartPlaylist = playlist.playlistAttributes.contains(.smart)
-    /// }
-    /// ```
     public func playlists(
         matching predicate: MediaItemPredicateInfo,
         _ comparisonType: MPMediaPredicateComparison
