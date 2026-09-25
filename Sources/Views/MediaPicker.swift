@@ -25,8 +25,8 @@
         private let showsCloudItems: Bool
         private let showsItemsWithProtectedAssets: Bool
         private let prompt: String?
-        private let onPick: ([Song]) -> Void
-        private let onCancel: () -> Void
+        private let onPick: @MainActor ([Song]) -> Void
+        private let onCancel: @MainActor () -> Void
 
         /// - Parameters:
         ///   - mediaTypes: The kinds of media to offer
@@ -43,8 +43,8 @@
             showsCloudItems: Bool = true,
             showsItemsWithProtectedAssets: Bool = true,
             prompt: String? = nil,
-            onPick: @escaping ([Song]) -> Void,
-            onCancel: @escaping () -> Void = {}
+            onPick: @escaping @MainActor ([Song]) -> Void,
+            onCancel: @escaping @MainActor () -> Void = {}
         ) {
             self.mediaTypes = mediaTypes
             self.allowsMultipleSelection = allowsMultipleSelection
@@ -62,6 +62,7 @@
         }
 
         public func updateUIViewController(_ picker: MPMediaPickerController, context: Context) {
+            configure(picker)
             context.coordinator.onPick = onPick
             context.coordinator.onCancel = onCancel
         }
@@ -72,19 +73,24 @@
 
         func makePicker() -> MPMediaPickerController {
             let picker = MPMediaPickerController(mediaTypes: mediaTypes)
+            configure(picker)
+            return picker
+        }
+
+        func configure(_ picker: MPMediaPickerController) {
             picker.allowsPickingMultipleItems = allowsMultipleSelection
             picker.showsCloudItems = showsCloudItems
             picker.showsItemsWithProtectedAssets = showsItemsWithProtectedAssets
             picker.prompt = prompt
-            return picker
         }
 
         /// Forwards the picker's delegate callbacks to `onPick` and `onCancel`.
-        public final class Coordinator: NSObject, MPMediaPickerControllerDelegate {
-            var onPick: ([Song]) -> Void
-            var onCancel: () -> Void
+        @MainActor
+        public final class Coordinator: NSObject, @preconcurrency MPMediaPickerControllerDelegate {
+            var onPick: @MainActor ([Song]) -> Void
+            var onCancel: @MainActor () -> Void
 
-            init(onPick: @escaping ([Song]) -> Void, onCancel: @escaping () -> Void) {
+            init(onPick: @escaping @MainActor ([Song]) -> Void, onCancel: @escaping @MainActor () -> Void) {
                 self.onPick = onPick
                 self.onCancel = onCancel
             }
@@ -120,7 +126,7 @@
             mediaTypes: MPMediaType = .music,
             allowsMultipleSelection: Bool = true,
             prompt: String? = nil,
-            onPick: @escaping ([Song]) -> Void
+            onPick: @escaping @MainActor ([Song]) -> Void
         ) -> some View {
             sheet(isPresented: isPresented) {
                 MediaPicker(

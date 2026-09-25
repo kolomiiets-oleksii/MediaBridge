@@ -16,5 +16,6 @@ struct MediaBridgeSampleApp: App {
 }
 
 extension EnvironmentValues {
-    @Entry var library: MusicLibraryProtocol = MusicLibrary()
+    @Entry var library: MusicLibraryProtocol = defaultLibrary
+    private static let defaultLibrary = MusicLibrary()
 }

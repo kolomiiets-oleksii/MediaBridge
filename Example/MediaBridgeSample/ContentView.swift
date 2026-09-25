@@ -11,7 +11,9 @@ struct ContentView: View {
     @State private var order: SortOrder = .reverse
     @State private var isLoading = true
     @State private var error: Error?
+    @State private var errorTitle = ""
     @State private var isShowingError = false
+    @State private var isSaving = false
     @State private var savedCount = 0
     @State private var isShowingSaved = false
 
@@ -32,7 +34,7 @@ struct ContentView: View {
                 Button("Save as Playlist", systemImage: "text.badge.plus") {
                     Task { await saveMostSkipped() }
                 }
-                .disabled(isLoading || songs.isEmpty)
+                .disabled(isLoading || isSaving || songs.isEmpty)
 
                 Button("Sort", systemImage: "arrow.up.arrow.down") {
                     order = order == .forward ? .reverse : .forward
@@ -42,9 +44,9 @@ struct ContentView: View {
             .alert("Most Skipped", isPresented: $isShowingSaved) {
                 Button("OK") {}
             } message: {
-                Text(savedCount == 0 ? "The playlist is up to date." : "Added \(savedCount) songs to the playlist.")
+                Text(savedCount == 0 ? "The playlist is up to date." : "Added ^[\(savedCount) song](inflect: true) to the playlist.")
             }
-            .alert("Can't Load Songs", isPresented: $isShowingError, presenting: error) { error in
+            .alert(errorTitle, isPresented: $isShowingError, presenting: error) { error in
                 if case AuthorizationManagerError.unauthorized(.denied) = error {
                     Button("Open Settings") {
                         openURL(URL(string: UIApplication.openSettingsURLString)!)
@@ -66,6 +68,9 @@ struct ContentView: View {
     }
 
     private func saveMostSkipped() async {
+        isSaving = true
+        defer { isSaving = false }
+
         do {
             let playlist = try await library.playlist(
                 id: Self.mostSkippedID,
@@ -78,6 +83,7 @@ struct ContentView: View {
             savedCount = new.count
             isShowingSaved = true
         } catch {
+            errorTitle = "Can't Save Playlist"
             self.error = error
             isShowingError = true
         }
@@ -90,6 +96,7 @@ struct ContentView: View {
         do {
             songs = try await library.fetch(Song.query.sorted(by: \.skipCount, order).then(by: \.title))
         } catch {
+            errorTitle = "Can't Load Songs"
             self.error = error
             isShowingError = true
         }

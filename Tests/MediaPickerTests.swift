@@ -39,6 +39,18 @@
                 #expect(!picker.showsItemsWithProtectedAssets)
                 #expect(picker.prompt == "Pick a podcast")
             }
+
+            @Test("When options change while it's showing, then the picker is updated")
+            func updates() {
+                let picker = MediaPicker(onPick: { _ in }).makePicker()
+
+                MediaPicker(allowsMultipleSelection: false, showsCloudItems: false, prompt: "Pick one", onPick: { _ in })
+                    .configure(picker)
+
+                #expect(!picker.allowsPickingMultipleItems)
+                #expect(!picker.showsCloudItems)
+                #expect(picker.prompt == "Pick one")
+            }
         }
 
         @Suite("Given the picker is showing")
