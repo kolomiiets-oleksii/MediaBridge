@@ -21,6 +21,36 @@ Add `NSAppleMusicUsageDescription` to your app's Info.plist with a sentence expl
 <string>Shows your songs so you can find the ones you skip most.</string>
 ```
 
+### Querying with Models
+
+``Song``, ``Album``, ``Artist``, ``Genre``, and ``Playlist`` wrap MediaPlayer objects without copying them, so fetching a large library costs no property reads. Describe what you want with a ``LibraryQuery`` and run it with ``MusicLibraryProtocol/fetch(_:)``:
+
+```swift
+let mostPlayed = try await library.fetch(
+    Song.query
+        .filter(\.isCloudItem, .equals(false))
+        .filter(\.playCount, .atLeast(10))
+        .sorted(by: \.playCount, .reverse)
+        .then(by: \.title)
+        .limit(25)
+)
+
+let adeleAlbums = try await library.fetch(Album.query.filter(\.artist, .equals("Adele")))
+```
+
+Filters MediaPlayer supports run inside its query; the rest run in memory. Artwork is rendered on demand and never stored:
+
+```swift
+List(mostPlayed) { song in
+    HStack {
+        ArtworkImage(song, size: 44)
+        Text(song.title ?? "")
+    }
+}
+```
+
+Each model keeps its MediaPlayer object (`song.mediaItem`) for APIs such as `MPMusicPlayerController`.
+
 ### General Usage
 
 Create a `MusicLibrary` and start fetching:
@@ -140,6 +170,19 @@ In debug builds, `.preview(...)` builds a ``MusicLibrary`` backed by fixed data,
 ```
 
 ## Topics
+
+### Models
+- ``Song``
+- ``Album``
+- ``Artist``
+- ``Genre``
+- ``Playlist``
+- ``ArtworkImage``
+
+### Queries
+- ``LibraryQuery``
+- ``LibraryCondition``
+- ``LibraryElement``
 
 ### Fetching Media Items
 - ``MusicLibrary``

@@ -31,7 +31,7 @@ Add MediaBridge to your project via Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/kolomiiets-oleksii/MediaBridge.git", from: "0.12.0")
+    .package(url: "https://github.com/kolomiiets-oleksii/MediaBridge.git", from: "0.13.0")
 ]
 ```
 
@@ -39,6 +39,20 @@ dependencies: [
 
 Add `NSAppleMusicUsageDescription` to your app's Info.plist first — iOS terminates the app on
 the first library access without it.
+
+```swift
+let library = MusicLibrary()
+
+// Typed models and a key-path query builder
+let mostPlayed = try await library.fetch(
+    Song.query
+        .filter(\.isCloudItem, .equals(false))
+        .sorted(by: \.playCount, .reverse)
+        .limit(25)
+)
+```
+
+The lower-level API works directly with MediaPlayer types:
 
 ```swift
 let library = MusicLibrary()
