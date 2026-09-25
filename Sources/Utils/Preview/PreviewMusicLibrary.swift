@@ -2,11 +2,11 @@ import Foundation
 import MediaPlayer
 
 #if DEBUG
-    @available(*, deprecated, renamed: "MusicLibrary", message: "Previews are MusicLibrary instances; use MusicLibrary.preview(...)")
+    @available(*, deprecated, renamed: "MusicLibrary", message: "Previews are MusicLibrary instances; use MusicLibrary.preview(...). Removed in 1.0.0.")
     public typealias PreviewMusicLibrary = MusicLibrary
 
     extension MusicLibrary {
-        @available(*, deprecated, message: "Use MusicLibrary.preview(authStatus:authStatusAfterRequest:songs:albums:artists:playlists:)")
+        @available(*, deprecated, message: "Use MusicLibrary.preview(authStatus:authStatusAfterRequest:songs:albums:artists:playlists:). Removed in 1.0.0.")
         public convenience init(
             status: MPMediaLibraryAuthorizationStatus,
             statusAfterRequest: MPMediaLibraryAuthorizationStatus,
@@ -24,7 +24,8 @@ import MediaPlayer
             self.init(
                 auth: PreviewAuthorizationManager(status: status, statusAfterRequest: statusAfterRequest),
                 service: PreviewMusicLibraryService(
-                    songs: songs, albums: filteredAlbums, artists: filteredArtists, playlists: filteredPlaylists)
+                    songs: songs, albums: filteredAlbums, artists: filteredArtists, playlists: filteredPlaylists),
+                changes: SilentLibraryChanges()
             )
         }
     }

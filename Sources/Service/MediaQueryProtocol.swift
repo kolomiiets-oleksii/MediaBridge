@@ -51,6 +51,27 @@ public protocol MediaQueryProtocol {
     ///   - filterPredicates: A set of `MPMediaPredicate` objects that define the filtering criteria for the query.
     ///                      Pass `nil` to fetch all available media items without filtering.
     init(filterPredicates: Set<MPMediaPredicate>?)
+
+    /// Index section titles and the ranges of ``items`` they cover, or `nil` when the query doesn't
+    /// provide them.
+    var itemSectionRanges: [(title: String, range: Range<Int>)]? { get }
+
+    /// Index section titles and the ranges of ``collections`` they cover, or `nil` when the query
+    /// doesn't provide them.
+    var collectionSectionRanges: [(title: String, range: Range<Int>)]? { get }
 }
 
-extension MPMediaQuery: MediaQueryProtocol { }
+extension MediaQueryProtocol {
+    public var itemSectionRanges: [(title: String, range: Range<Int>)]? { nil }
+    public var collectionSectionRanges: [(title: String, range: Range<Int>)]? { nil }
+}
+
+extension MPMediaQuery: MediaQueryProtocol {
+    public var itemSectionRanges: [(title: String, range: Range<Int>)]? {
+        itemSections?.compactMap { section in Range(section.range).map { (section.title, $0) } }
+    }
+
+    public var collectionSectionRanges: [(title: String, range: Range<Int>)]? {
+        collectionSections?.compactMap { section in Range(section.range).map { (section.title, $0) } }
+    }
+}

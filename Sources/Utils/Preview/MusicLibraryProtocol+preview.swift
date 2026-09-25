@@ -50,11 +50,12 @@ import MediaPlayer
         ) -> MusicLibrary {
             MusicLibrary(
                 auth: PreviewAuthorizationManager(status: authStatus, statusAfterRequest: authStatusAfterRequest),
-                service: PreviewMusicLibraryService(songs: songs, albums: albums, artists: artists, playlists: playlists)
+                service: PreviewMusicLibraryService(songs: songs, albums: albums, artists: artists, playlists: playlists),
+                changes: SilentLibraryChanges()
             )
         }
 
-        @available(*, deprecated, message: "Use preview(authStatus:authStatusAfterRequest:songs:albums:artists:playlists:)")
+        @available(*, deprecated, message: "Use preview(authStatus:authStatusAfterRequest:songs:albums:artists:playlists:). Removed in 1.0.0.")
         public static func preview(
             authStatus: MPMediaLibraryAuthorizationStatus = .authorized,
             authStatusAfterRequest: MPMediaLibraryAuthorizationStatus = .authorized,

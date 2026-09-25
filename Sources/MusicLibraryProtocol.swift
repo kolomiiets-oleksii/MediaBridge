@@ -43,6 +43,22 @@ public protocol MusicLibraryProtocol: Sendable {
     @discardableResult
     func requestAuthorization() async throws -> MPMediaLibraryAuthorizationStatus
 
+    /// Yields the library's modification date each time the music library changes.
+    ///
+    /// Re-run your queries when it yields; previously fetched items may be stale. Each access
+    /// starts a new observation, which ends when you stop iterating. Changes only arrive once
+    /// access is authorized.
+    ///
+    /// ## Example
+    /// ```swift
+    /// .task {
+    ///     for await _ in library.changes {
+    ///         songs = (try? await library.songs()) ?? []
+    ///     }
+    /// }
+    /// ```
+    var changes: AsyncStream<Date> { get }
+
     /// Fetches all media items of a specific type, grouped by `groupingType`.
     ///
     /// - Parameters:
@@ -170,6 +186,31 @@ public protocol MusicLibraryProtocol: Sendable {
         _ comparisonType: MPMediaPredicateComparison,
         groupingType: MPMediaGrouping
     ) async throws -> [MPMediaItemCollection]
+
+    /// Fetches the media items matching a request.
+    ///
+    /// The most general query: every item method is a shortcut over it.
+    ///
+    /// ## Example
+    /// ```swift
+    /// let jazz = try await library.items(
+    ///     MediaQueryRequest(mediaType: .music, filter: .init(.genre("Jazz")), grouping: .title)
+    /// )
+    /// ```
+    func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem]
+
+    /// Fetches the collections matching a request, grouped by `request.grouping`.
+    ///
+    /// The most general collection query: albums, artists, genres, and the other collection
+    /// methods are shortcuts over it.
+    func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection]
+
+    /// Fetches the items matching a request, split into index sections like the Music app's
+    /// A–Z sidebar.
+    func itemSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItem>]
+
+    /// Fetches the collections matching a request, split into index sections.
+    func collectionSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItemCollection>]
 
     /// Fetches music albums matching a predicate.
     ///
@@ -331,9 +372,41 @@ public protocol MusicLibraryProtocol: Sendable {
 }
 
 extension MusicLibraryProtocol {
+    /// A stream that never yields, for conformers that don't observe the library.
+    public var changes: AsyncStream<Date> { SilentLibraryChanges().changes() }
+
+    /// Routes the request through ``fetchAll(_:groupingType:)`` or
+    /// ``mediaItems(ofType:matching:_:groupingType:)``, for conformers written before 0.12.
+    public func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem] {
+        let type = request.mediaType ?? .any
+        guard let filter = request.filter else {
+            return try await fetchAll(type, groupingType: request.grouping)
+        }
+        return try await mediaItems(ofType: type, matching: filter.predicate, filter.comparison, groupingType: request.grouping)
+    }
+
+    /// Groups ``items(_:)`` by the first letter of their title, for conformers written before 0.12.
+    public func itemSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItem>] {
+        MediaSection.alphabetical(try await items(request), grouping: request.grouping)
+    }
+
+    /// Groups ``collections(_:)`` by the first letter of their title, for conformers written before 0.12.
+    public func collectionSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItemCollection>] {
+        MediaSection.alphabetical(try await collections(request), grouping: request.grouping)
+    }
+
+    /// Routes the request through ``mediaItemCollections(ofType:matching:_:groupingType:)``, for
+    /// conformers written before 0.12. An unfiltered request filters by its media type.
+    public func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection] {
+        let type = request.mediaType ?? .any
+        let filter = request.filter ?? .init(.mediaType(type))
+        return try await mediaItemCollections(
+            ofType: type, matching: filter.predicate, filter.comparison, groupingType: request.grouping)
+    }
+
     // MARK: - Deprecated
 
-    @available(*, deprecated, renamed: "songs(sortedBy:order:)")
+    @available(*, deprecated, renamed: "songs(sortedBy:order:)", message: "Removed in 1.0.0.")
     public func fetchSongs<T: Comparable>(
         sortedBy sortingKey: SortKey<MPMediaItem, T>?,
         order: SortOrder
@@ -357,7 +430,7 @@ extension MusicLibraryProtocol {
     /// // Using default .equalTo comparison
     /// let songs = try await library.fetchSong(with: .persistentID(12345))
     /// ```
-    @available(*, deprecated, renamed: "songs(matching:comparisonType:)")
+    @available(*, deprecated, renamed: "songs(matching:comparisonType:)", message: "Removed in 1.0.0.")
     public func fetchSong(
         with predicate: MediaItemPredicateInfo,
         comparisonType: MPMediaPredicateComparison = .equalTo
@@ -365,7 +438,7 @@ extension MusicLibraryProtocol {
         try await songs(matching: predicate, comparisonType: comparisonType)
     }
 
-    @available(*, deprecated, renamed: "mediaItems(ofType:matching:_:groupingType:)")
+    @available(*, deprecated, renamed: "mediaItems(ofType:matching:_:groupingType:)", message: "Removed in 1.0.0.")
     public func fetch(
         _ type: MPMediaType,
         with predicate: MediaItemPredicateInfo,
@@ -451,7 +524,7 @@ extension MusicLibraryProtocol {
     /// ```swift
     /// let allSongs = try await library.fetchSongs()
     /// ```
-    @available(*, deprecated, renamed: "songs()")
+    @available(*, deprecated, renamed: "songs()", message: "Removed in 1.0.0.")
     public func fetchSongs() async throws -> [MPMediaItem] {
         return try await songs()
     }

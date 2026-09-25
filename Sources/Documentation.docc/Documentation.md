@@ -54,6 +54,32 @@ let rockAlbums = try await library.albums(matching: .genre("Rock"), .equalTo, gr
 
 // Playlists matching a name
 let chillPlaylists = try await library.playlists(matching: .playlistName("Chill"), .contains)
+
+// Only songs stored on the device
+let localSongs = try await library.songs(matching: .isCloudItem(false), comparisonType: .equalTo)
+```
+
+Beyond songs, albums, artists, and playlists, there are genres, composers, compilations, podcasts, and audiobooks, plus ``MusicLibraryProtocol/items(_:)`` and ``MusicLibraryProtocol/collections(_:)`` for any ``MediaQueryRequest``:
+
+```swift
+let genres = try await library.genres(sortedBy: \MPMediaItemCollection.count, order: .reverse)
+let podcasts = try await library.podcasts()
+```
+
+Build an A–Z index like the Music app's with sections:
+
+```swift
+let sections = try await library.songSections()   // [MediaSection<MPMediaItem>]
+```
+
+Refresh when the library changes, for example after a sync:
+
+```swift
+.task {
+    for await _ in library.changes {
+        songs = (try? await library.songs()) ?? []
+    }
+}
 ```
 
 Or inject it into SwiftUI views via environment values (`library` is a key your app declares):
@@ -118,6 +144,12 @@ In debug builds, `.preview(...)` builds a ``MusicLibrary`` backed by fixed data,
 ### Fetching Media Items
 - ``MusicLibrary``
 - ``MusicLibraryProtocol``
+- ``MediaSection``
+
+### Library Changes
+- ``LibraryChangesProtocol``
+- ``LiveLibraryChanges``
+- ``MediaLibraryChangeTracking``
 
 ### Service Layer
 - ``MusicLibraryServiceProtocol``

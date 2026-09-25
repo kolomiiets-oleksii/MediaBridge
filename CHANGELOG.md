@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-09-25
+
+### Added
+- `MusicLibraryProtocol.changes`, an `AsyncStream<Date>` that yields the library's modification date whenever it changes; `MusicLibrary(auth:service:changes:)` takes the source, `LiveLibraryChanges` by default
+- `genres()`, `composers()`, `compilations()`, `podcasts()`, and `audiobooks()`, each with a `sortedBy:order:` variant
+- `items(_:)` and `collections(_:)` on `MusicLibraryProtocol`, running any `MediaQueryRequest`
+- A–Z index sections: `songSections()`, `albumSections()`, `artistSections()`, and the general `itemSections(_:)` and `collectionSections(_:)`, returning `MediaSection` values; the live service uses MediaPlayer's own section index
+- Filters: `isCloudItem`, `hasProtectedAsset`, `isCompilation`, `playCount`, `podcastTitle`, `podcastID`, `playlistAttributes`, and `playlistCloudID`
+
+### Changed
+- `MusicLibraryProtocol`, `MusicLibraryServiceProtocol`, and `MediaQueryProtocol` gain requirements for the above, each with a default implementation, so existing conformers keep compiling
+- `MediaItemPredicateInfo` has new cases; an exhaustive `switch` over it needs them or a `default`
+
+### Deprecated
+- Every deprecated API now says it will be removed in 1.0.0: the `fetch…` methods, `PreviewMusicLibrary` and its initializer, and the old `.preview(...)` parameters
+
 ## [0.11.0] - 2026-09-25
 
 ### Changed

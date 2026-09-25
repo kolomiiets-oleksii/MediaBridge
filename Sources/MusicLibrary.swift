@@ -59,6 +59,7 @@ import MediaPlayer
 public final class MusicLibrary: MusicLibraryProtocol {
     private let auth: any AuthorizationManagerProtocol
     private let service: any MusicLibraryServiceProtocol
+    private let changeSource: any LibraryChangesProtocol
 
     public var authorizationStatus: MPMediaLibraryAuthorizationStatus {
         auth.status()
@@ -75,6 +76,8 @@ public final class MusicLibrary: MusicLibraryProtocol {
     ///     Defaults to `.live` for production use. Pass a mock implementation for testing.
     ///   - service: The service layer for querying media items.
     ///     Defaults to `.live` for production use. Pass a mock implementation for testing.
+    ///   - changes: The source behind ``changes``. Defaults to `.live`, which observes the
+    ///     device library.
     ///
     /// ## Examples
     ///
@@ -91,10 +94,16 @@ public final class MusicLibrary: MusicLibraryProtocol {
     /// ```
     public init(
         auth: any AuthorizationManagerProtocol = .live,
-        service: any MusicLibraryServiceProtocol = .live
+        service: any MusicLibraryServiceProtocol = .live,
+        changes: any LibraryChangesProtocol = .live
     ) {
         self.auth = auth
         self.service = service
+        self.changeSource = changes
+    }
+
+    public var changes: AsyncStream<Date> {
+        changeSource.changes()
     }
 
     // MARK: - Authorization
@@ -131,6 +140,26 @@ public final class MusicLibrary: MusicLibraryProtocol {
         try await checkIfAuthorized()
         return try await service.collections(
             MediaQueryRequest(mediaType: type, filter: .init(predicate, comparisonType), grouping: groupingType))
+    }
+
+    public func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem] {
+        try await checkIfAuthorized()
+        return try await service.items(request)
+    }
+
+    public func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection] {
+        try await checkIfAuthorized()
+        return try await service.collections(request)
+    }
+
+    public func itemSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItem>] {
+        try await checkIfAuthorized()
+        return try await service.itemSections(request)
+    }
+
+    public func collectionSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItemCollection>] {
+        try await checkIfAuthorized()
+        return try await service.collectionSections(request)
     }
 
     // MARK: - Specific calls
@@ -213,10 +242,6 @@ public final class MusicLibrary: MusicLibraryProtocol {
         return playlists
     }
 
-    /// Checks authorization, runs the given fetch, and applies the optional sort key.
-    ///
-    /// Shared by every `sortedBy:order:` method so authorization, sorting, and the
-    /// debug timing logs behave identically across songs, albums, artists, and playlists.
     private func fetchSorted<Element, Value: Comparable>(
         _ label: String,
         sortedBy sortingKey: SortKey<Element, Value>?,
@@ -269,7 +294,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
 
 // MARK: - Deprecated
 extension MusicLibrary {
-    @available(*, deprecated, renamed: "mediaItems(ofType:matching:_:groupingType:)")
+    @available(*, deprecated, renamed: "mediaItems(ofType:matching:_:groupingType:)", message: "Removed in 1.0.0.")
     public func fetch(
         _ type: MPMediaType,
         with predicate: MediaItemPredicateInfo,
@@ -279,7 +304,7 @@ extension MusicLibrary {
         return try await mediaItems(ofType: type, matching: predicate, comparisonType, groupingType: groupingType)
     }
 
-    @available(*, deprecated, renamed: "songs()")
+    @available(*, deprecated, renamed: "songs()", message: "Removed in 1.0.0.")
     public func fetchSongs<T: Comparable>(
         sortedBy sortingKey: (KeyPath<MPMediaItem, T> & Sendable)?,
         order: SortOrder
@@ -287,7 +312,7 @@ extension MusicLibrary {
         return try await songs(sortedBy: sortingKey, order: order)
     }
 
-    @available(*, deprecated, renamed: "songs(matching:comparisonType:)")
+    @available(*, deprecated, renamed: "songs(matching:comparisonType:)", message: "Removed in 1.0.0.")
     public func fetchSong(
         with predicate: MediaItemPredicateInfo,
         comparisonType: MPMediaPredicateComparison = .equalTo
