@@ -16,7 +16,7 @@ import MediaPlayer
 ///     groupingType: .album
 /// )
 /// ```
-public enum MediaItemPredicateInfo: Sendable {
+public enum MediaItemPredicateInfo: Sendable, Equatable {
     /// Filter by a media item's persistent ID (unique identifier).
     case persistentID(UInt64)
 
