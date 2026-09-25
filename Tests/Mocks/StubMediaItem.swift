@@ -4,6 +4,8 @@ import MediaPlayer
 /// constants, so tests can sort and filter items without a real music library.
 final class StubMediaItem: MPMediaItem, @unchecked Sendable {
     private let values: [String: Any]
+    private let lock = NSLock()
+    private var readProperties: [String] = []
 
     init(_ values: [String: Any]) {
         self.values = values
@@ -14,8 +16,12 @@ final class StubMediaItem: MPMediaItem, @unchecked Sendable {
         nil
     }
 
+    /// Every property read through `value(forProperty:)`, in order.
+    var reads: [String] { lock.withLock { readProperties } }
+
     override func value(forProperty property: String) -> Any? {
-        values[property]
+        lock.withLock { readProperties.append(property) }
+        return values[property]
     }
 
     override var title: String? { values[MPMediaItemPropertyTitle] as? String }
