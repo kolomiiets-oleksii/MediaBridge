@@ -3,52 +3,51 @@ import MediaPlayer
 import SwiftUI
 
 struct ContentView: View {
-    @Environment(\.library) var library
-    @State private var songs: [MPMediaItem] = []
-    @State private var order: SortOrder = .forward
-    @State private var isLoading = false
-    @State private var showError: Bool = false
-    @State private var errorMessage: Error?
+    @Environment(\.library) private var library
+    @Environment(\.openURL) private var openURL
+    @State private var songs: [Song] = []
+    @State private var order: SortOrder = .reverse
+    @State private var isLoading = true
+    @State private var error: Error?
+    @State private var isShowingError = false
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                if songs.isEmpty && !isLoading {
-                    ContentUnavailableView("No Songs", systemImage: "music.note")
-                } else {
-                    List(songs, id: \.persistentID) { song in
-                        SongRow(song: song)
-                    }
-                }
-
+            List(songs) { song in
+                SongRow(song: song)
+            }
+            .overlay {
                 if isLoading {
                     ProgressView()
+                } else if songs.isEmpty {
+                    ContentUnavailableView("No Songs", systemImage: "music.note")
                 }
             }
             .navigationTitle("Skipped Songs")
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(action: toggleSort) {
-                        Image(systemName: "arrow.up.arrow.down")
-                    }
-                    .disabled(isLoading)
+                Button("Sort", systemImage: "arrow.up.arrow.down") {
+                    order = order == .forward ? .reverse : .forward
                 }
+                .disabled(isLoading)
             }
-            .alert("Error", isPresented: $showError) {
-                Button("OK") { showError = false }
-            } message: {
-                Text(errorMessage?.localizedDescription ?? "Unknown error")
+            .alert("Can't Load Songs", isPresented: $isShowingError, presenting: error) { error in
+                if case AuthorizationManagerError.unauthorized(.denied) = error {
+                    Button("Open Settings") {
+                        openURL(URL(string: UIApplication.openSettingsURLString)!)
+                    }
+                    Button("Cancel", role: .cancel) {}
+                }
+            } message: { error in
+                Text(error.localizedDescription)
             }
+        }
+        .task(id: order) {
+            await loadSongs()
         }
         .task {
-            await loadSongs()
-        }
-    }
-
-    private func toggleSort() {
-        order.toggle()
-        Task {
-            await loadSongs()
+            for await _ in library.changes {
+                await loadSongs()
+            }
         }
     }
 
@@ -57,22 +56,20 @@ struct ContentView: View {
         defer { isLoading = false }
 
         do {
-            songs = try await library.songs(sortedBy: \MPMediaItem.skipCount, order: order)
-            errorMessage = nil
+            songs = try await library.fetch(Song.query.sorted(by: \.skipCount, order).then(by: \.title))
         } catch {
-            errorMessage = error
-            showError = true
+            self.error = error
+            isShowingError = true
         }
     }
 }
 
-extension SortOrder {
-    mutating func toggle() {
-        self = self == .forward ? .reverse : .forward
-    }
+#Preview("Songs") {
+    ContentView()
+        .environment(\.library, .preview(songs: DemoSongs.all))
 }
 
-#Preview {
+#Preview("Access denied") {
     ContentView()
         .environment(\.library, .accessDenied)
 }

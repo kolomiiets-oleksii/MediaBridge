@@ -1,16 +1,15 @@
-import MediaPlayer
+import MediaBridge
 import SwiftUI
 
 struct SongRow: View {
-    let song: MPMediaItem
+    let song: Song
 
     var body: some View {
         HStack(spacing: 12) {
-            ArtworkImage(song: song)
+            ArtworkImage(song, size: 44)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(song.title ?? "Unknown")
-                    .font(.body)
                     .lineLimit(1)
 
                 if let artist = song.artist {
@@ -33,6 +32,6 @@ struct SongRow: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }
