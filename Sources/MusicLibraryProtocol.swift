@@ -406,7 +406,7 @@ extension MusicLibraryProtocol {
 
     // MARK: - Deprecated
 
-    @available(*, deprecated, renamed: "songs(sortedBy:order:)")
+    @available(*, deprecated, renamed: "songs(sortedBy:order:)", message: "Removed in 1.0.0.")
     public func fetchSongs<T: Comparable>(
         sortedBy sortingKey: SortKey<MPMediaItem, T>?,
         order: SortOrder
@@ -430,7 +430,7 @@ extension MusicLibraryProtocol {
     /// // Using default .equalTo comparison
     /// let songs = try await library.fetchSong(with: .persistentID(12345))
     /// ```
-    @available(*, deprecated, renamed: "songs(matching:comparisonType:)")
+    @available(*, deprecated, renamed: "songs(matching:comparisonType:)", message: "Removed in 1.0.0.")
     public func fetchSong(
         with predicate: MediaItemPredicateInfo,
         comparisonType: MPMediaPredicateComparison = .equalTo
@@ -438,7 +438,7 @@ extension MusicLibraryProtocol {
         try await songs(matching: predicate, comparisonType: comparisonType)
     }
 
-    @available(*, deprecated, renamed: "mediaItems(ofType:matching:_:groupingType:)")
+    @available(*, deprecated, renamed: "mediaItems(ofType:matching:_:groupingType:)", message: "Removed in 1.0.0.")
     public func fetch(
         _ type: MPMediaType,
         with predicate: MediaItemPredicateInfo,
@@ -524,7 +524,7 @@ extension MusicLibraryProtocol {
     /// ```swift
     /// let allSongs = try await library.fetchSongs()
     /// ```
-    @available(*, deprecated, renamed: "songs()")
+    @available(*, deprecated, renamed: "songs()", message: "Removed in 1.0.0.")
     public func fetchSongs() async throws -> [MPMediaItem] {
         return try await songs()
     }

@@ -114,8 +114,7 @@ public enum MediaItemPredicateInfo: Sendable, Equatable {
         "\(property) with value `\(String(describing: value))`"
     }
 
-    /// Evaluates the predicate in memory, approximating MediaPlayer's matching: strings compare
-    /// case-insensitively, numbers by value.
+    // Approximates MediaPlayer's matching: strings compare case-insensitively, numbers by value.
     func matches(_ entity: MPMediaEntity, using comparison: MPMediaPredicateComparison) -> Bool {
         switch (value, entity.value(forProperty: property)) {
         case let (expected as String, actual as String):

@@ -31,7 +31,6 @@ public enum AuthorizationManagerError: Error, LocalizedError {
         }
     }
 
-    /// Builds a user-friendly message based on the authorization status.
     private func buildUserFriendlyMessage(for status: MPMediaLibraryAuthorizationStatus) -> String {
         switch status {
         case .denied:

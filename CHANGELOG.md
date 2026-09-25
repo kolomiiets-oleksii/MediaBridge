@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `MusicLibraryProtocol`, `MusicLibraryServiceProtocol`, and `MediaQueryProtocol` gain requirements for the above, each with a default implementation, so existing conformers keep compiling
 - `MediaItemPredicateInfo` has new cases; an exhaustive `switch` over it needs them or a `default`
 
+### Deprecated
+- Every deprecated API now says it will be removed in 1.0.0: the `fetch…` methods, `PreviewMusicLibrary` and its initializer, and the old `.preview(...)` parameters
+
 ## [0.11.0] - 2026-09-25
 
 ### Changed

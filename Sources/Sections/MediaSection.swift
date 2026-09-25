@@ -21,8 +21,6 @@ extension MediaSection: Equatable where Element: Equatable {}
 extension MediaSection {
     static var otherTitle: String { "#" }
 
-    /// Groups elements by the first letter of their title, folding case and diacritics. Letter
-    /// sections are sorted alphabetically, followed by `#` for titles that don't start with a letter.
     static func alphabetical(_ elements: [Element], title: (Element) -> String?) -> [MediaSection] {
         var order: [String] = []
         var groups: [String: [Element]] = [:]

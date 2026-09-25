@@ -1,9 +1,7 @@
 import MediaPlayer
 
 #if DEBUG
-    /// Serves fixed items and collections, applying each request's filter in memory.
-    ///
-    /// The request's media type is ignored: preview data is assumed to be of the type asked for.
+    // Ignores the request's media type: preview data is assumed to be of the type asked for.
     struct PreviewMusicLibraryService: MusicLibraryServiceProtocol, @unchecked Sendable {
         let songs: [MPMediaItem]
         let albums: [MPMediaItemCollection]

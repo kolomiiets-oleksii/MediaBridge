@@ -55,7 +55,7 @@ import MediaPlayer
             )
         }
 
-        @available(*, deprecated, message: "Use preview(authStatus:authStatusAfterRequest:songs:albums:artists:playlists:)")
+        @available(*, deprecated, message: "Use preview(authStatus:authStatusAfterRequest:songs:albums:artists:playlists:). Removed in 1.0.0.")
         public static func preview(
             authStatus: MPMediaLibraryAuthorizationStatus = .authorized,
             authStatusAfterRequest: MPMediaLibraryAuthorizationStatus = .authorized,

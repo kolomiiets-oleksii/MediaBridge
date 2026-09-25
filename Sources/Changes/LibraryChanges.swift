@@ -57,7 +57,7 @@ public struct LiveLibraryChanges: LibraryChangesProtocol {
     }
 }
 
-/// MediaPlayer's library object isn't `Sendable`; its change-tracking calls are thread-safe.
+// MediaPlayer's library object isn't `Sendable`; its change-tracking calls are thread-safe.
 private struct TrackedLibrary: @unchecked Sendable {
     private let base: any MediaLibraryChangeTracking
     init(_ base: any MediaLibraryChangeTracking) { self.base = base }
