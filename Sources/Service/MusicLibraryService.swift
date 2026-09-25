@@ -26,8 +26,6 @@ extension MusicLibraryServiceProtocol where Self == MusicLibraryService<MPMediaQ
 ///
 /// For testing or custom implementations, conform to ``MusicLibraryServiceProtocol`` and inject your implementation.
 public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServiceProtocol, Sendable {
-    public typealias Q = T
-
     /// Creates a service that builds its queries with `T`.
     public init() {}
 
@@ -104,7 +102,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         comparisonType: MPMediaPredicateComparison = .equalTo
     ) async throws -> [MPMediaPlaylist] {
         let filter = predicate.predicate(using: comparisonType)
-        var query = Q(filterPredicates: [filter])
+        var query = T(filterPredicates: [filter])
         query.groupingType = .playlist
 
         return playlistsDiscardingOtherCollections(in: query, of: predicate.description)
@@ -129,7 +127,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
     }
 
     private func playlistsDiscardingOtherCollections(
-        in query: Q,
+        in query: T,
         of description: @escaping @autoclosure () -> String
     ) -> [MPMediaPlaylist] {
         let collections = emptyLoggingResults(query.collections, of: description())
@@ -145,7 +143,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
     private func query(
         _ type: MPMediaType,
         _ groupingType: MPMediaGrouping
-    ) -> Q {
+    ) -> T {
         let typePredicate = MediaItemPredicateInfo.mediaType(type)
         let typeFilter = typePredicate.predicate()
 
@@ -157,7 +155,7 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         withFilter predicate: MediaItemPredicateInfo,
         _ comparisonType: MPMediaPredicateComparison,
         _ groupingType: MPMediaGrouping
-    ) -> Q {
+    ) -> T {
         let typePredicate = MediaItemPredicateInfo.mediaType(type)
         let typeFilter = typePredicate.predicate()
         let additionalFilter = predicate.predicate(using: comparisonType)
@@ -165,8 +163,8 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
         return prepareQuery(with: [typeFilter, additionalFilter], groupingType: groupingType)
     }
 
-    private func playlistQuery() -> Q {
-        var query = Q(filterPredicates: nil)
+    private func playlistQuery() -> T {
+        var query = T(filterPredicates: nil)
         query.groupingType = .playlist
         return query
     }
@@ -174,8 +172,8 @@ public final class MusicLibraryService<T: MediaQueryProtocol>: MusicLibraryServi
     private func prepareQuery(
         with predicates: Set<MPMediaPredicate>?,
         groupingType: MPMediaGrouping
-    ) -> Q {
-        var query = Q(filterPredicates: predicates)
+    ) -> T {
+        var query = T(filterPredicates: predicates)
         query.groupingType = groupingType
         return query
     }

@@ -2,8 +2,6 @@ import MediaBridge
 import MediaPlayer
 
 final class MockMusicLibraryService: MusicLibraryServiceProtocol {
-    typealias Q = MPMediaQuery
-
     enum MockError: Error {
         case noSong, noSongs, noAlbum, noAlbums, noArtist, noArtists, noPlaylist, noPlaylists
     }

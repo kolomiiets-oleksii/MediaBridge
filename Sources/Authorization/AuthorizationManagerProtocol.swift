@@ -12,12 +12,7 @@ import MediaPlayer
 ///
 /// Conforming types handle requesting and checking authorization status for accessing the user's music library.
 /// All authorization requests should go through this protocol to enable testing with mock implementations.
-///
-/// The protocol uses an associated type `T` that conforms to `MediaLibraryProtocol` to abstract the underlying
-/// media library implementation, allowing for easy testing and dependency injection.
 public protocol AuthorizationManagerProtocol: Sendable {
-    associatedtype T: MediaLibraryProtocol
-
     /// Requests authorization to access the music library.
     ///
     /// Returns immediately if access is already granted. Otherwise shows the system prompt,
@@ -59,10 +54,6 @@ public protocol AuthorizationManagerProtocol: Sendable {
     func status() -> MPMediaLibraryAuthorizationStatus
 }
 
-extension AuthorizationManagerProtocol {
-    public typealias T = MPMediaLibrary
-}
-
-extension AuthorizationManagerProtocol where Self == AuthorizationManager<T> {
+extension AuthorizationManagerProtocol where Self == AuthorizationManager<MPMediaLibrary> {
     public static var live: Self { AuthorizationManager() }
 }

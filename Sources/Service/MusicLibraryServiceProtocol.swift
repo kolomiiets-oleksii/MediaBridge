@@ -13,8 +13,8 @@ import MediaPlayer
 ///
 /// ## Query Type
 ///
-/// The associated type `Q` is the query type conforming to ``MediaQueryProtocol``:
-/// `MPMediaQuery` in production, a mock query in tests.
+/// ``MusicLibraryService`` takes its query type as a generic parameter conforming to
+/// ``MediaQueryProtocol``: `MPMediaQuery` in production, a mock query in tests.
 ///
 /// ## Example
 ///
@@ -24,8 +24,6 @@ import MediaPlayer
 /// let songs = try await service.fetchAll(.music, groupingType: .album)
 /// ```
 public protocol MusicLibraryServiceProtocol: Sendable {
-    associatedtype Q: MediaQueryProtocol
-
     // MARK: - Media Items
     
     /// Fetches all media items of a specific type with optional grouping.
