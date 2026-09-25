@@ -48,6 +48,21 @@ struct ArtworkTests {
         }
     }
 
+    @Suite("Given a list of artwork views")
+    @MainActor
+    struct Views {
+        @Test("When 1,000 rows build their artwork views, then no song or album property is read")
+        func initReadsNothing() {
+            let items = (0..<1_000).map { _ in StubMediaItem([MPMediaItemPropertyTitle: "Song"]) }
+
+            let songViews = items.map { ArtworkImage(Song($0), size: 44) }
+            let albumViews = items.map { ArtworkImage(Album(MPMediaItemCollection(items: [$0])), size: 44) }
+
+            #expect(songViews.count + albumViews.count == 2_000)
+            #expect(items.allSatisfy { $0.reads.isEmpty })
+        }
+    }
+
     @Suite("Given the model types")
     struct Storage {
         @Test("When laid out in memory, then a Song holds nothing but its media item")
