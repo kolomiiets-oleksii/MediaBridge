@@ -133,11 +133,27 @@ struct ArtworkTests {
             #expect(image.size == CGSize(width: 160, height: 160))
         }
 
-        @Test("When the offered width changes, then the artwork renders again at the new size")
-        func rerendersOnResize() {
-            let id = ObjectIdentifier(StubMediaItem([:]))
-            #expect(ArtworkRequest(id: id, side: 120) != ArtworkRequest(id: id, side: 160))
-            #expect(ArtworkRequest(id: id, side: 160) == ArtworkRequest(id: id, side: 160))
+        @Test("When the width changes within a 64pt step, then the artwork isn't rendered again")
+        func keepsRenderWithinStep() {
+            #expect(ArtworkRequest.flexibleSide(for: 150) == 192)
+            #expect(ArtworkRequest.flexibleSide(for: 170) == 192)
+            #expect(ArtworkRequest.flexibleSide(for: 192) == 192)
+        }
+
+        @Test("When the width crosses a 64pt step, then the artwork renders at the next step")
+        func rendersAtNextStep() {
+            #expect(ArtworkRequest.flexibleSide(for: 193) == 256)
+            #expect(ArtworkRequest.flexibleSide(for: 0) == 0)
+        }
+
+        @Test("When the rendered size or the item changes, then it's a new request")
+        func requestIdentity() {
+            let first = StubMediaItem([:])
+            let second = StubMediaItem([:])
+            let id = ObjectIdentifier(first)
+            #expect(ArtworkRequest(id: id, side: 192) != ArtworkRequest(id: id, side: 256))
+            #expect(ArtworkRequest(id: id, side: 192) != ArtworkRequest(id: ObjectIdentifier(second), side: 192))
+            #expect(ArtworkRequest(id: id, side: 192) == ArtworkRequest(id: id, side: 192))
         }
     }
 

@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.0] - 2026-09-26
 
 ### Added
-- `ArtworkImage(song)` and `ArtworkImage(album)` without a size fill the width the layout offers, stay square, and render the artwork at the laid-out size, again when it changes. The default corner radius is an eighth of the width.
+- `ArtworkImage(song)` and `ArtworkImage(album)` without a size fill the width the layout offers, stay square, and render the artwork at the laid-out width rounded up to a multiple of 64 points, so resizing re-renders only when the width crosses a multiple. The default corner radius is an eighth of the width.
 
 ## [1.2.0] - 2026-09-26
 

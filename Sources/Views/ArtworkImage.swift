@@ -58,7 +58,8 @@
         }
 
         /// Creates the artwork view for a song, as wide as the layout offers and as tall as it is
-        /// wide. The artwork renders at the laid-out size, and again when that size changes.
+        /// wide. The artwork renders at the laid-out width rounded up to a multiple of 64 points,
+        /// and again only when the width crosses to another multiple.
         /// - Parameters:
         ///   - song: The song whose artwork to show.
         ///   - cornerRadius: The radius of the rounded corners. Defaults to an eighth of the width.
@@ -67,7 +68,8 @@
         }
 
         /// Creates the artwork view for an album, as wide as the layout offers and as tall as it is
-        /// wide. The artwork renders at the laid-out size, and again when that size changes.
+        /// wide. The artwork renders at the laid-out width rounded up to a multiple of 64 points,
+        /// and again only when the width crosses to another multiple.
         /// - Parameters:
         ///   - album: The album whose artwork to show.
         ///   - cornerRadius: The radius of the rounded corners. Defaults to an eighth of the width.
@@ -108,6 +110,10 @@
     struct ArtworkRequest: Equatable {
         let id: ObjectIdentifier
         let side: Double
+
+        static func flexibleSide(for width: Double) -> Double {
+            (width / 64).rounded(.up) * 64
+        }
     }
 
     struct ArtworkView<Placeholder: View>: View {
@@ -123,14 +129,18 @@
 
         var body: some View {
             if let size {
-                ArtworkSquare(id: id, render: render, side: size, cornerRadius: cornerRadius(side: size), placeholder: placeholder)
+                ArtworkSquare(
+                    id: id, render: render, side: size, renderSide: size,
+                    cornerRadius: cornerRadius(side: size), placeholder: placeholder)
             } else {
                 Color.clear
                     .aspectRatio(1, contentMode: .fit)
                     .overlay {
                         GeometryReader { proxy in
                             let side = proxy.size.width
-                            ArtworkSquare(id: id, render: render, side: side, cornerRadius: cornerRadius(side: side), placeholder: placeholder)
+                            ArtworkSquare(
+                                id: id, render: render, side: side, renderSide: ArtworkRequest.flexibleSide(for: side),
+                                cornerRadius: cornerRadius(side: side), placeholder: placeholder)
                         }
                     }
             }
@@ -141,6 +151,7 @@
         let id: ObjectIdentifier
         let render: @MainActor (CGSize) -> UIImage?
         let side: Double
+        let renderSide: Double
         let cornerRadius: Double
         let placeholder: Placeholder
         @State private var image: UIImage?
@@ -156,9 +167,9 @@
             .frame(width: side, height: side)
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .accessibilityHidden(true)
-            .task(id: ArtworkRequest(id: id, side: side)) {
-                guard side > 0 else { return }
-                image = await render(CGSize(width: side, height: side))?.byPreparingForDisplay()
+            .task(id: ArtworkRequest(id: id, side: renderSide)) {
+                guard renderSide > 0 else { return }
+                image = await render(CGSize(width: renderSide, height: renderSide))?.byPreparingForDisplay()
             }
         }
     }
