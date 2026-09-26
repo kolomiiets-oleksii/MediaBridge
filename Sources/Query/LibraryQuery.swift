@@ -61,14 +61,14 @@ public struct LibraryQuery<Element: LibraryElement>: Sendable, Equatable {
     }
 
     /// Orders results by `keyPath`, replacing any previous ordering.
-    public func sorted<Value: Comparable>(by keyPath: KeyPath<Element, Value> & Sendable, _ order: SortOrder = .forward) -> Self {
+    public func sorted<Value: Comparable & Sendable>(by keyPath: KeyPath<Element, Value> & Sendable, _ order: SortOrder = .forward) -> Self {
         var copy = self
         copy.orderings = [Self.ordering(keyPath, { $0[keyPath: keyPath] }, order)]
         return copy
     }
 
     /// Breaks ties in the current ordering by `keyPath`.
-    public func then<Value: Comparable>(by keyPath: KeyPath<Element, Value> & Sendable, _ order: SortOrder = .forward) -> Self {
+    public func then<Value: Comparable & Sendable>(by keyPath: KeyPath<Element, Value> & Sendable, _ order: SortOrder = .forward) -> Self {
         var copy = self
         copy.orderings.append(Self.ordering(keyPath, { $0[keyPath: keyPath] }, order))
         return copy
@@ -76,7 +76,7 @@ public struct LibraryQuery<Element: LibraryElement>: Sendable, Equatable {
 
     /// Orders results by an optional `keyPath`, replacing any previous ordering. Missing values
     /// sort first in `.forward` order.
-    public func sorted<Value: Comparable>(by keyPath: KeyPath<Element, Value?> & Sendable, _ order: SortOrder = .forward) -> Self {
+    public func sorted<Value: Comparable & Sendable>(by keyPath: KeyPath<Element, Value?> & Sendable, _ order: SortOrder = .forward) -> Self {
         var copy = self
         copy.orderings = [Self.ordering(keyPath, { $0[keyPath: keyPath].nilFirst }, order)]
         return copy
@@ -84,7 +84,7 @@ public struct LibraryQuery<Element: LibraryElement>: Sendable, Equatable {
 
     /// Breaks ties in the current ordering by an optional `keyPath`. Missing values sort first in
     /// `.forward` order.
-    public func then<Value: Comparable>(by keyPath: KeyPath<Element, Value?> & Sendable, _ order: SortOrder = .forward) -> Self {
+    public func then<Value: Comparable & Sendable>(by keyPath: KeyPath<Element, Value?> & Sendable, _ order: SortOrder = .forward) -> Self {
         var copy = self
         copy.orderings.append(Self.ordering(keyPath, { $0[keyPath: keyPath].nilFirst }, order))
         return copy
@@ -160,7 +160,7 @@ public struct LibraryQuery<Element: LibraryElement>: Sendable, Equatable {
         return elements
     }
 
-    private static func ordering<Value: Comparable>(
+    private static func ordering<Value: Comparable & Sendable>(
         _ keyPath: some Hashable & Sendable,
         _ key: @escaping @Sendable (Element) -> Value,
         _ order: SortOrder
@@ -195,7 +195,7 @@ extension MusicLibraryProtocol {
     }
 }
 
-struct NilFirst<Wrapped: Comparable>: Comparable {
+struct NilFirst<Wrapped: Comparable & Sendable>: Comparable, Sendable {
     let value: Wrapped?
 
     static func < (lhs: Self, rhs: Self) -> Bool {
@@ -208,7 +208,7 @@ struct NilFirst<Wrapped: Comparable>: Comparable {
     }
 }
 
-extension Optional where Wrapped: Comparable {
+extension Optional where Wrapped: Comparable & Sendable {
     var nilFirst: NilFirst<Wrapped> { NilFirst(value: self) }
 }
 

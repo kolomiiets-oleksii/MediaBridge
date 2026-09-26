@@ -4,7 +4,7 @@ import Foundation
 /// `\.playCount >= 10` or `\.artist == "Adele"`.
 ///
 /// Pass it to ``LibraryQuery/filter(_:)``. `==` runs inside MediaPlayer's query when the property
-/// supports it, like ``LibraryCondition/equals(_:)``; the other operators run in memory.
+/// supports it, like `.equals`; the other operators run in memory.
 public struct LibraryPredicate<Root: LibraryElement>: Sendable {
     let apply: @Sendable (LibraryQuery<Root>) -> LibraryQuery<Root>
 }

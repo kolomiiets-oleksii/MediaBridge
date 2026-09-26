@@ -33,8 +33,10 @@ public struct LiveLibraryChanges: LibraryChangesProtocol {
     private let center: NotificationCenter
     private let library: @Sendable () -> TrackedLibrary
 
-    /// - Parameter library: Resolved when ``changes()`` is first observed, so creating a live
-    ///   ``MusicLibrary`` doesn't touch MediaPlayer.
+    /// - Parameters:
+    ///   - center: The notification center that delivers `MPMediaLibraryDidChange`.
+    ///   - library: Resolved when ``changes()`` is first observed, so creating a live
+    ///     ``MusicLibrary`` doesn't touch MediaPlayer.
     public init(
         center: NotificationCenter = .default,
         library: @autoclosure @escaping @Sendable () -> any MediaLibraryChangeTracking = MPMediaLibrary.default()

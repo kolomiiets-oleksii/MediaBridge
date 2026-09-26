@@ -29,8 +29,8 @@ struct PredicateTests {
     @Suite("Given a new filter case")
     struct Building {
         @Test("When it builds a MediaPlayer predicate, then the property and value match", arguments: PredicateTests.newCases)
-        func builds(_ testCase: Case) throws {
-            let predicate = try #require(testCase.predicate.predicate(using: .equalTo) as? MPMediaPropertyPredicate)
+        func builds(_ testCase: Case) {
+            let predicate = testCase.predicate.predicate(using: .equalTo)
             #expect(predicate.property == testCase.property)
             #expect((predicate.value as? NSObject) == testCase.value)
         }

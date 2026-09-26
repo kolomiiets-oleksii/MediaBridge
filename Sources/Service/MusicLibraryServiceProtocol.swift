@@ -62,22 +62,22 @@ extension MusicLibraryServiceProtocol {
         MediaSection.alphabetical(try await collections(request), grouping: request.grouping)
     }
 
-    /// Throws ``MusicLibraryError/writesUnsupported``, for services written before 0.14.
+    /// Throws ``MusicLibraryError/writesUnsupported``, for read-only services.
     public func playlist(id: UUID, creating metadata: PlaylistMetadata?) async throws -> MPMediaPlaylist? {
         throw MusicLibraryError.writesUnsupported
     }
 
-    /// Throws ``MusicLibraryError/writesUnsupported``, for services written before 0.14.
+    /// Throws ``MusicLibraryError/writesUnsupported``, for read-only services.
     public func add(_ items: [MPMediaItem], to playlist: MPMediaPlaylist) async throws {
         throw MusicLibraryError.writesUnsupported
     }
 
-    /// Throws ``MusicLibraryError/writesUnsupported``, for services written before 0.15.
+    /// Throws ``MusicLibraryError/writesUnsupported``, for read-only services.
     public func addItem(productID: String) async throws -> [MPMediaEntity] {
         throw MusicLibraryError.writesUnsupported
     }
 
-    /// Throws ``MusicLibraryError/writesUnsupported``, for services written before 0.15.
+    /// Throws ``MusicLibraryError/writesUnsupported``, for read-only services.
     public func add(productID: String, to playlist: MPMediaPlaylist) async throws {
         throw MusicLibraryError.writesUnsupported
     }

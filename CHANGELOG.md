@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-26
+
+MediaBridge 1.0 is typed-only: every library read goes through `LibraryQuery` and returns MediaBridge models, and every call throws one `MusicLibraryError`. See the migration table in the README.
+
+### Added
+- `@MediaQuery`, a SwiftUI property wrapper that fetches a query for a view and refetches when the query or the library changes. `$songs.isLoading`, `$songs.error`, and `await $songs.reload()` expose its state.
+- The `musicLibrary` environment value and `.musicLibrary(_:)` modifier, defaulting to the device's library.
+- Query entry points: `.songs`, `.albums`, `.artists`, `.genres`, `.composers`, `.playlists`, `.podcasts`, `.podcastEpisodes`, `.audiobooks`, and `.compilations`. Name your own queries in a `LibraryQuery` extension.
+- Key-path comparison operators: `.filter(\.playCount >= 10)`, `.filter(\.artist == "Adele")`, and `==`, `!=`, `<`, `>`, `<=`, `>=` on optional properties.
+- `Composer` and `Podcast` models, and `CollectionElement` for collection-backed models.
+- `library.sections(_:)` for A–Z sections of any typed query.
+- `LibraryQuery.mediaType(_:)` to query podcasts, audiobooks, and other media types.
+- Sorting by `Bool` and optional properties; missing values sort first.
+- The `.musicLibrary(...)` preview trait for `#Preview` on iOS 18 and visionOS 2 and later.
+- Preview libraries group songs into albums, artists, genres, composers, and podcasts when no collections are given.
+
+### Changed
+- Every `MusicLibraryProtocol` call throws `MusicLibraryError` with typed throws, so `catch .unauthorized(.denied)` matches without casting. Authorization failures are `MusicLibraryError.unauthorized(_:)`.
+- `LibraryQuery` and `LibraryCondition` are checked `Sendable`; key paths must be `Sendable`, which every key-path literal is.
+- `MusicLibraryProtocol` no longer has default implementations; conform through `MusicLibrary` and a custom `MusicLibraryServiceProtocol` instead.
+
+### Removed
+- The MediaPlayer-type convenience API: `fetchSongs`, `fetchAlbums`, and the other `fetch…` methods, `SortKey`, `FlagKey`, the Bool-sorting helpers, and the `Optional` `Comparable` extension. `items(_:)` and `collections(_:)` remain for raw MediaPlayer requests.
+- `AuthorizationManagerError`, replaced by `MusicLibraryError.unauthorized(_:)`.
+- `PreviewMusicLibrary` and the deprecated `.preview(fetchedSongs:...)`; use `MusicLibrary.preview(...)`.
+- `MediaQueryRequest.filter`.
+
+### Fixed
+- Creating a `MusicLibrary` no longer touches MediaPlayer, so the permission prompt appears only on the first fetch.
+
 ## [0.15.0] - 2026-09-26
 
 ### Added
