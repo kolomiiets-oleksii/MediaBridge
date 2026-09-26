@@ -21,12 +21,9 @@ public struct Genre: Identifiable, Hashable, @unchecked Sendable {
     private var representative: EntityReader { EntityReader(mediaCollection.representativeItem) }
 }
 
-extension Genre: LibraryElement {
+extension Genre: CollectionElement {
     public static var baseRequest: MediaQueryRequest { MediaQueryRequest(mediaType: .music, grouping: .genre) }
 
-    public static func fetch(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws -> [Genre] {
-        try await library.collections(request).map(Genre.init)
-    }
 
     public static func predicate(for keyPath: AnyKeyPath, value: Any) -> MediaItemPredicateInfo? {
         switch (keyPath, value) {

@@ -40,6 +40,13 @@ extension Playlist: LibraryElement {
         try await library.collections(request).compactMap { ($0 as? MPMediaPlaylist).map(Playlist.init) }
     }
 
+    public static func fetchSections(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws -> [MediaSection<Playlist>] {
+        try await library.collectionSections(request).compactMap { section in
+            let playlists = section.elements.compactMap { ($0 as? MPMediaPlaylist).map(Playlist.init) }
+            return playlists.isEmpty ? nil : MediaSection(title: section.title, elements: playlists)
+        }
+    }
+
     public static func predicate(for keyPath: AnyKeyPath, value: Any) -> MediaItemPredicateInfo? {
         switch (keyPath, value) {
         case (\Playlist.name, let value as String): .playlistName(value)

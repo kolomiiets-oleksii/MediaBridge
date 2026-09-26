@@ -63,6 +63,10 @@ extension Song: LibraryElement {
         try await library.items(request).map(Song.init)
     }
 
+    public static func fetchSections(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws -> [MediaSection<Song>] {
+        try await library.itemSections(request).map { MediaSection(title: $0.title, elements: $0.elements.map(Song.init)) }
+    }
+
     public static func predicate(for keyPath: AnyKeyPath, value: Any) -> MediaItemPredicateInfo? {
         switch (keyPath, value) {
         case (\Song.title, let value as String): .title(value)

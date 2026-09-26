@@ -31,6 +31,11 @@ public struct LibraryQuery<Element: LibraryElement>: @unchecked Sendable {
     private(set) var clauses: [Clause] = []
     private(set) var orderings: [Ordering] = []
     private(set) var maximumCount: Int?
+    private var mediaTypeOverride: MediaTypeOverride?
+
+    private struct MediaTypeOverride {
+        let mediaType: MPMediaType?
+    }
 
     public init() {}
 
@@ -65,13 +70,24 @@ public struct LibraryQuery<Element: LibraryElement>: @unchecked Sendable {
         return copy
     }
 
+    /// Fetches `mediaType` instead of the element's default, such as audiobooks or podcast
+    /// episodes as ``Song``s. Pass `nil` to match every media type.
+    public func mediaType(_ mediaType: MPMediaType?) -> Self {
+        var copy = self
+        copy.mediaTypeOverride = MediaTypeOverride(mediaType: mediaType)
+        return copy
+    }
+
     var request: MediaQueryRequest {
         var request = Element.baseRequest
+        if let mediaTypeOverride {
+            request.mediaType = mediaTypeOverride.mediaType
+        }
         request.filters += clauses.compactMap(\.filter)
         return request
     }
 
-    func refine(_ fetched: [Element]) -> [Element] {
+    func refine(_ fetched: [Element], applyingLimit: Bool = true) -> [Element] {
         let localTests = clauses.filter { $0.filter == nil }.map(\.test)
         var elements = localTests.isEmpty ? fetched : fetched.filter { element in localTests.allSatisfy { $0(element) } }
         if !orderings.isEmpty {
@@ -88,7 +104,7 @@ public struct LibraryQuery<Element: LibraryElement>: @unchecked Sendable {
             }
             elements = order.map { elements[$0] }
         }
-        if let maximumCount {
+        if applyingLimit, let maximumCount {
             elements = Array(elements.prefix(maximumCount))
         }
         return elements
@@ -111,5 +127,16 @@ extension MusicLibraryProtocol {
     /// Runs a ``LibraryQuery``, requesting authorization first if needed.
     public func fetch<Element: LibraryElement>(_ query: LibraryQuery<Element>) async throws -> [Element] {
         query.refine(try await Element.fetch(query.request, from: self))
+    }
+
+    /// Runs a ``LibraryQuery`` split into A–Z index sections, as in the Music app's lists.
+    ///
+    /// The query's filters and ordering apply inside each section, and sections the filters empty
+    /// are dropped. `limit` is ignored.
+    public func sections<Element: LibraryElement>(_ query: LibraryQuery<Element>) async throws -> [MediaSection<Element>] {
+        try await Element.fetchSections(query.request, from: self).compactMap { section in
+            let elements = query.refine(section.elements, applyingLimit: false)
+            return elements.isEmpty ? nil : MediaSection(title: section.title, elements: elements)
+        }
     }
 }
