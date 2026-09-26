@@ -57,7 +57,7 @@ struct SectionTests {
             ])
             let library = MusicLibrary(auth: .mock, service: service)
 
-            let sections = try await library.songSections()
+            let sections = try await library.sections(Song.query)
 
             #expect(sections.map(\.title) == ["A", "H"])
             #expect(sections[1].elements.map(\.title) == ["Help!", "Hello"])
@@ -70,7 +70,7 @@ struct SectionTests {
             let service = MockMusicLibraryService(collections: [.album: [zebra, abbey]])
             let library = MusicLibrary(auth: .mock, service: service)
 
-            let sections = try await library.albumSections()
+            let sections = try await library.sections(Album.query)
 
             #expect(sections.map(\.title) == ["A", "Z"])
         }
@@ -80,7 +80,7 @@ struct SectionTests {
             let service = MockMusicLibraryService()
             let library = MusicLibrary(auth: .mock(isAuthorized: false, authStatus: .denied), service: service)
 
-            await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) { _ = try await library.songSections() }
+            await #expect(throws: MusicLibraryError.unauthorized(.denied)) { _ = try await library.sections(Song.query) }
             #expect(service.requests.isEmpty)
         }
     }

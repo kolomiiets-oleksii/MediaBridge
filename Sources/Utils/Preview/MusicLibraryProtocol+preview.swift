@@ -54,32 +54,5 @@ import MediaPlayer
                 changes: SilentLibraryChanges()
             )
         }
-
-        @available(*, deprecated, message: "Use preview(authStatus:authStatusAfterRequest:songs:albums:artists:playlists:). Removed in 1.0.0.")
-        public static func preview(
-            authStatus: MPMediaLibraryAuthorizationStatus = .authorized,
-            authStatusAfterRequest: MPMediaLibraryAuthorizationStatus = .authorized,
-            fetchedAllMedia: [MPMediaItem] = [],
-            fetchedMedia: [MPMediaItem] = [],
-            fetchedSongs: [MPMediaItem] = [],
-            filteredSongs: [MPMediaItem] = [],
-            filteredAlbums: [MPMediaItemCollection] = [],
-            filteredArtists: [MPMediaItemCollection] = [],
-            filteredPlaylists: [MPMediaPlaylist] = []
-        ) -> MusicLibrary {
-            .preview(
-                authStatus: authStatus,
-                authStatusAfterRequest: authStatusAfterRequest,
-                songs: uniqued(fetchedAllMedia + fetchedMedia + fetchedSongs + filteredSongs),
-                albums: filteredAlbums,
-                artists: filteredArtists,
-                playlists: filteredPlaylists
-            )
-        }
-
-        private static func uniqued(_ items: [MPMediaItem]) -> [MPMediaItem] {
-            var seen = Set<ObjectIdentifier>()
-            return items.filter { seen.insert(ObjectIdentifier($0)).inserted }
-        }
     }
 #endif

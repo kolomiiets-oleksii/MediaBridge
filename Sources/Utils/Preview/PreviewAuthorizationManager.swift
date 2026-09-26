@@ -22,7 +22,7 @@ import MediaPlayer
                 return current
             }
             guard status == .authorized else {
-                throw AuthorizationManagerError.unauthorized(status)
+                throw MusicLibraryError.unauthorized(status)
             }
             return .authorized
         }

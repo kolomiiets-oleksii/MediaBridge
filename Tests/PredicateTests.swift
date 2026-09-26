@@ -29,8 +29,8 @@ struct PredicateTests {
     @Suite("Given a new filter case")
     struct Building {
         @Test("When it builds a MediaPlayer predicate, then the property and value match", arguments: PredicateTests.newCases)
-        func builds(_ testCase: Case) throws {
-            let predicate = try #require(testCase.predicate.predicate(using: .equalTo) as? MPMediaPropertyPredicate)
+        func builds(_ testCase: Case) {
+            let predicate = testCase.predicate.predicate(using: .equalTo)
             #expect(predicate.property == testCase.property)
             #expect((predicate.value as? NSObject) == testCase.value)
         }
@@ -52,7 +52,7 @@ struct PredicateTests {
             let library: MusicLibrary = .preview(songs: [
                 StubMediaItem.song("Once", plays: 1), StubMediaItem.song("Thrice", plays: 3),
             ])
-            let songs = try await library.songs(matching: .playCount(3), comparisonType: .equalTo)
+            let songs = try await library.fetch(Song.query.filter(\.playCount, .equals(3)))
             #expect(songs.map(\.title) == ["Thrice"])
         }
     }
@@ -62,7 +62,7 @@ struct PredicateTests {
         @Test("Then it asks for music albums filtered to compilations")
         func request() async throws {
             let service = MockMusicLibraryService()
-            _ = try await MusicLibrary(auth: .mock, service: service).compilations()
+            _ = try await MusicLibrary(auth: .mock, service: service).fetch(Album.query.filter(\.isCompilation, .equals(true)))
             #expect(
                 service.requests == [
                     MediaQueryRequest(mediaType: .music, filter: .init(.isCompilation(true)), grouping: .album)

@@ -19,7 +19,7 @@ public protocol AuthorizationManagerProtocol: Sendable {
     /// if the user hasn't decided yet. Safe to call multiple times.
     ///
     /// - Returns: `.authorized`; any other outcome throws
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is denied or restricted
+    /// - Throws: ``MusicLibraryError/unauthorized(_:)`` if access is denied or restricted
     ///
     /// ## Example
     /// ```swift

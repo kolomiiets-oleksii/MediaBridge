@@ -28,12 +28,9 @@ public struct Album: Identifiable, Hashable, @unchecked Sendable {
     private var representative: EntityReader { EntityReader(mediaCollection.representativeItem) }
 }
 
-extension Album: LibraryElement {
+extension Album: CollectionElement {
     public static var baseRequest: MediaQueryRequest { MediaQueryRequest(mediaType: .music, grouping: .album) }
 
-    public static func fetch(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws -> [Album] {
-        try await library.collections(request).map(Album.init)
-    }
 
     public static func predicate(for keyPath: AnyKeyPath, value: Any) -> MediaItemPredicateInfo? {
         switch (keyPath, value) {

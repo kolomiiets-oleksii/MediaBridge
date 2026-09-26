@@ -4,7 +4,7 @@
 
 # MediaBridge
 
-A Swift bridge for MPMediaLibrary integration.
+The user's music library in modern Swift: typed models, key-path queries, typed errors, and `@MediaQuery` for SwiftUI. Built on MediaPlayer, iOS 15 and later.
 
 [![Swift Package Index](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fkolomiiets-oleksii%2FMediaBridge%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/kolomiiets-oleksii/MediaBridge)
 [![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fkolomiiets-oleksii%2FMediaBridge%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/kolomiiets-oleksii/MediaBridge)
@@ -19,44 +19,88 @@ A Swift bridge for MPMediaLibrary integration.
 - Swift 6.0 / Xcode 16 or later (CI builds against Swift 6.0 and runs the test suite on Swift 6.1, 6.2, 6.3 and 6.4)
 - iOS 15.0+, visionOS 1.0+
 
-## Retroactive conformances
-
-MediaBridge declares `Optional: Comparable where Wrapped: Comparable` so optional key paths
-(`\.releaseDate`, `\.name`) can be sorted. The conformance is public and reaches your module on
-import; if another dependency declares the same one, you will need to disambiguate.
-
 ## Installation
 
 Add MediaBridge to your project via Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/kolomiiets-oleksii/MediaBridge.git", from: "0.15.0")
+    .package(url: "https://github.com/kolomiiets-oleksii/MediaBridge.git", from: "1.0.0")
 ]
 ```
 
-## Quick Start
+Add `NSAppleMusicUsageDescription` to your app's Info.plist, saying why you need the library.
+iOS terminates the app on the first library access without it.
 
-Add `NSAppleMusicUsageDescription` to your app's Info.plist first — iOS terminates the app on
-the first library access without it.
+## SwiftUI
+
+```swift
+struct SongList: View {
+    @MediaQuery(.songs.sorted(by: \.playCount, .reverse)) var songs
+
+    var body: some View {
+        List(songs) { song in
+            HStack {
+                ArtworkImage(song, size: 44)
+                Text(song.title ?? "Unknown")
+            }
+        }
+        .refreshable { await $songs.reload() }
+    }
+}
+```
+
+`@MediaQuery` asks for access on its first fetch, and refetches when the query or the library
+changes. `$songs.isLoading` and `$songs.error` report its state.
+
+Name the queries your app repeats:
+
+```swift
+extension LibraryQuery where Element == Song {
+    static var mostSkipped: Self { .songs.filter(\.skipCount > 0).sorted(by: \.skipCount, .reverse) }
+}
+
+@MediaQuery(.mostSkipped) var songs
+```
+
+## Queries
+
+Start from `.songs`, `.albums`, `.artists`, `.genres`, `.composers`, `.playlists`, `.podcasts`,
+`.podcastEpisodes`, `.audiobooks`, or `.compilations`, then filter, sort, and limit:
 
 ```swift
 let library = MusicLibrary()
 
-// Typed models and a key-path query builder
-let mostPlayed = try await library.fetch(
-    Song.query
-        .filter(\.isCloudItem, .equals(false))
+let topLocal = try await library.fetch(
+    .songs
+        .filter(\.isCloudItem == false)      // runs inside MediaPlayer's query
+        .filter(\.playCount >= 10)           // runs in memory
         .sorted(by: \.playCount, .reverse)
+        .then(by: \.title)
         .limit(25)
 )
 
-// Save them to your app's own playlist
-let playlist = try await library.playlist(id: mostPlayedID, orCreate: PlaylistMetadata(name: "Most Played"))
-try await library.add(mostPlayed, to: playlist)
+let sections = try await library.sections(.albums)   // A–Z, like the Music app
+```
 
-// Apple Music subscribers: add catalog songs by product ID
-try await library.add(productID: "1440839718", to: playlist)
+Every call throws one typed error:
+
+```swift
+do {
+    songs = try await library.fetch(.songs)
+} catch .unauthorized(.denied) {
+    showSettingsButton = true
+} catch {
+    message = error.localizedDescription
+}
+```
+
+## Playlists and Apple Music
+
+```swift
+let playlist = try await library.playlist(id: mostSkippedID, orCreate: PlaylistMetadata(name: "Most Skipped"))
+try await library.add(songs, to: playlist)
+try await library.add(productID: "1440839718", to: playlist)   // Apple Music subscribers
 ```
 
 Let people pick songs with the system picker (iOS):
@@ -68,73 +112,44 @@ Button("Add Songs") { isPicking = true }
     }
 ```
 
-The lower-level API works directly with MediaPlayer types:
+## Previews
 
 ```swift
-let library = MusicLibrary()
-
-// Optional: fetches request access on their own; call this only to choose when the prompt appears
-if library.authorizationStatus == .notDetermined {
-    try await library.requestAuthorization()
+#Preview(traits: .musicLibrary(songs: previewSongs)) {   // iOS 18+
+    SongList()
 }
 
-// Fetch songs
-let songs = try await library.songs()
-
-// Fetch albums
-let albums = try await library.albums()
-
-// Fetch artists
-let artists = try await library.artists()
-
-// Fetch playlists
-let playlists = try await library.playlists()
-
-// Genres, composers, compilations, podcasts, audiobooks
-let genres = try await library.genres()
-
-// A–Z index sections
-let sections = try await library.songSections()
-
-// Re-fetch whenever the library changes
-for await _ in library.changes {
-    let songs = try await library.songs()
+#Preview {
+    SongList()
+        .musicLibrary(.accessDenied)
 }
 ```
-
-For SwiftUI, inject via environment:
-
-```swift
-extension EnvironmentValues {
-    @Entry var library: MusicLibraryProtocol = MusicLibrary()
-}
-
-@Environment(\.library) var library
-
-// Songs sorted by skip count
-let songs = try await library.songs(sortedBy: \MPMediaItem.skipCount, order: .reverse)
-
-// Albums sorted by track count
-let albums = try await library.albums(sortedBy: \MPMediaItemCollection.count, order: .reverse)
-
-// Filter by genre
-let rockSongs = try await library.songs(matching: .genre("Rock"), comparisonType: .equalTo)
-```
-
-Both the service layer and authorization manager use production implementations by default (`.live`), but you can provide custom implementations for testing or specialized behavior.
 
 ## Migration
 
-### 0.11.0
+### 1.0.0
 
-- `MusicLibraryServiceProtocol` has two requirements, `items(_:)` and `collections(_:)`, taking a `MediaQueryRequest`. Custom services implement those instead of the six `fetch…` methods; `MusicLibrary` now builds songs, albums, artists, and playlists itself.
-- Previews are `MusicLibrary` instances: use `.preview(songs:albums:artists:playlists:)`. `PreviewMusicLibrary` and the old `fetchedSongs`/`filtered…` parameters still compile, with deprecation warnings.
-- A preview whose access ends up denied or restricted now throws from fetches and `requestAuthorization()`, like the live library.
+1.0 keeps one way to do each thing, so everything deprecated and the MediaPlayer-type shortcuts
+are gone:
 
-### 0.7.0
+| Before | 1.0 |
+|---|---|
+| `library.songs()` | `library.fetch(.songs)` |
+| `library.songs(sortedBy: \MPMediaItem.playCount, order: .reverse)` | `library.fetch(.songs.sorted(by: \.playCount, .reverse))` |
+| `library.songs(matching: .artist("Adele"), comparisonType: .equalTo)` | `library.fetch(.songs.filter(\.artist == "Adele"))` |
+| `library.albums()`, `artists()`, `playlists()`, `genres()`, `composers()`, `podcasts()`, `compilations()` | `library.fetch(.albums)`, `.artists`, `.playlists`, `.genres`, `.composers`, `.podcasts`, `.compilations` |
+| `library.audiobooks()` | `library.fetch(.audiobooks)` |
+| `library.fetchAll(type, groupingType:)`, `mediaItems(ofType:…)`, `mediaItemCollections(ofType:…)` | `library.items(MediaQueryRequest(…))`, `library.collections(MediaQueryRequest(…))` |
+| `library.songSections()`, `albumSections()`, `artistSections()` | `library.sections(.songs)`, `.albums`, `.artists` |
+| `SortKey`, `FlagKey` | Sort by any key path: `.sorted(by: \.isExplicit)` |
+| `AuthorizationManagerError.unauthorized(status)` | `MusicLibraryError.unauthorized(status)` |
+| Errors from custom services or MediaPlayer | `MusicLibraryError.underlying(error)` |
+| Your own `@Entry var library` | `@Environment(\.musicLibrary)` and `.musicLibrary(_:)` |
+| `PreviewMusicLibrary`, `.preview(fetchedSongs:…)` | `.preview(songs:albums:artists:playlists:)` |
+| `request.filter` | `request.filters` |
 
-- `albumArtistID` predicate case now takes `UInt64` instead of `String`. Update any call sites using `.albumArtistID("...")` to pass a numeric ID instead.
-- `fetchSongs`, `fetchSong`, and `fetch` are no longer protocol requirements. They remain available as deprecated extension methods but conformers no longer need to implement them.
+MediaBridge no longer makes `Optional` conform to `Comparable` in your module; queries sort
+optional key paths themselves, with missing values first.
 
 ## Documentation
 

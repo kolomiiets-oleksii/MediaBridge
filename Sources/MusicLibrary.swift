@@ -17,8 +17,7 @@ import MediaPlayer
 /// Create an instance and use it directly:
 /// ```swift
 /// let library = MusicLibrary()
-/// let songs = try await library.songs()
-/// let artist = try await library.mediaItems(ofType: .music, matching: .artist("Taylor Swift"), .contains, groupingType: .album)
+/// let songs = try await library.fetch(Song.query.filter(\.artist, .contains("Taylor Swift")))
 /// ```
 ///
 /// For SwiftUI apps, inject the library via environment values:
@@ -40,10 +39,7 @@ import MediaPlayer
 ///             }
 ///         }
 ///         .task {
-///             let songs = try? await library.songs(
-///                 sortedBy: \MPMediaItem.skipCount,
-///                 order: .reverse
-///             )
+///             let songs = try? await library.fetch(Song.query.sorted(by: \.skipCount, .reverse))
 ///         }
 ///     }
 /// }
@@ -109,198 +105,57 @@ public final class MusicLibrary: MusicLibraryProtocol {
     // MARK: - Authorization
 
     @discardableResult
-    public func requestAuthorization() async throws -> MPMediaLibraryAuthorizationStatus {
-        try await auth.authorize()
+    public func requestAuthorization() async throws(MusicLibraryError) -> MPMediaLibraryAuthorizationStatus {
+        try await attempt { try await auth.authorize() }
     }
 
-    // MARK: - General Media Queries
+    // MARK: - Queries
 
-    public func fetchAll(_ type: MPMediaType, groupingType: MPMediaGrouping) async throws -> [MPMediaItem] {
+    public func items(_ request: MediaQueryRequest) async throws(MusicLibraryError) -> [MPMediaItem] {
         try await checkIfAuthorized()
-        return try await service.items(MediaQueryRequest(mediaType: type, grouping: groupingType))
+        return try await attempt { try await service.items(request) }
     }
 
-    public func mediaItems(
-        ofType type: MPMediaType,
-        matching predicate: MediaItemPredicateInfo,
-        _ comparisonType: MPMediaPredicateComparison,
-        groupingType: MPMediaGrouping
-    ) async throws -> [MPMediaItem] {
+    public func collections(_ request: MediaQueryRequest) async throws(MusicLibraryError) -> [MPMediaItemCollection] {
         try await checkIfAuthorized()
-        return try await service.items(
-            MediaQueryRequest(mediaType: type, filter: .init(predicate, comparisonType), grouping: groupingType))
+        return try await attempt { try await service.collections(request) }
     }
 
-    public func mediaItemCollections(
-        ofType type: MPMediaType,
-        matching predicate: MediaItemPredicateInfo,
-        _ comparisonType: MPMediaPredicateComparison,
-        groupingType: MPMediaGrouping
-    ) async throws -> [MPMediaItemCollection] {
+    public func itemSections(_ request: MediaQueryRequest) async throws(MusicLibraryError) -> [MediaSection<MPMediaItem>] {
         try await checkIfAuthorized()
-        return try await service.collections(
-            MediaQueryRequest(mediaType: type, filter: .init(predicate, comparisonType), grouping: groupingType))
+        return try await attempt { try await service.itemSections(request) }
     }
 
-    public func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem] {
+    public func collectionSections(_ request: MediaQueryRequest) async throws(MusicLibraryError) -> [MediaSection<MPMediaItemCollection>] {
         try await checkIfAuthorized()
-        return try await service.items(request)
-    }
-
-    public func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection] {
-        try await checkIfAuthorized()
-        return try await service.collections(request)
-    }
-
-    public func itemSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItem>] {
-        try await checkIfAuthorized()
-        return try await service.itemSections(request)
-    }
-
-    public func collectionSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItemCollection>] {
-        try await checkIfAuthorized()
-        return try await service.collectionSections(request)
-    }
-
-    // MARK: - Specific calls
-
-    public func songs<T: Comparable>(
-        sortedBy sortingKey: SortKey<MPMediaItem, T>?,
-        order: SortOrder
-    ) async throws -> [MPMediaItem] {
-        try await fetchSorted("songs", sortedBy: sortingKey, order: order) {
-            try await self.service.items(MediaQueryRequest(mediaType: .music, grouping: .title))
-        }
-    }
-
-    public func albums<T: Comparable>(
-        sortedBy sortingKey: SortKey<MPMediaItemCollection, T>?,
-        order: SortOrder
-    ) async throws -> [MPMediaItemCollection] {
-        try await fetchSorted("albums", sortedBy: sortingKey, order: order) {
-            try await self.service.collections(MediaQueryRequest(mediaType: .music, grouping: .album))
-        }
-    }
-
-    public func songs(
-        matching predicate: MediaItemPredicateInfo,
-        comparisonType: MPMediaPredicateComparison
-    ) async throws -> [MPMediaItem] {
-        return try await mediaItems(ofType: .music, matching: predicate, comparisonType, groupingType: .title)
-    }
-
-    public func albums(
-        matching predicate: MediaItemPredicateInfo,
-        _ comparisonType: MPMediaPredicateComparison,
-        groupingType: MPMediaGrouping
-    ) async throws -> [MPMediaItemCollection] {
-        return try await mediaItemCollections(ofType: .music, matching: predicate, comparisonType, groupingType: groupingType)
-    }
-
-    public func artists<T: Comparable>(
-        sortedBy sortingKey: SortKey<MPMediaItemCollection, T>?,
-        order: SortOrder
-    ) async throws -> [MPMediaItemCollection] {
-        try await fetchSorted("artists", sortedBy: sortingKey, order: order) {
-            try await self.service.collections(MediaQueryRequest(mediaType: .music, grouping: .artist))
-        }
-    }
-
-    public func artists(
-        matching predicate: MediaItemPredicateInfo,
-        _ comparisonType: MPMediaPredicateComparison,
-        groupingType: MPMediaGrouping
-    ) async throws -> [MPMediaItemCollection] {
-        return try await mediaItemCollections(ofType: .music, matching: predicate, comparisonType, groupingType: groupingType)
-    }
-
-    public func playlists<T: Comparable>(
-        sortedBy sortingKey: SortKey<MPMediaPlaylist, T>?,
-        order: SortOrder
-    ) async throws -> [MPMediaPlaylist] {
-        try await fetchSorted("playlists", sortedBy: sortingKey, order: order) {
-            try await self.playlists(from: MediaQueryRequest(grouping: .playlist))
-        }
-    }
-
-    public func playlists(
-        matching predicate: MediaItemPredicateInfo,
-        _ comparisonType: MPMediaPredicateComparison
-    ) async throws -> [MPMediaPlaylist] {
-        try await checkIfAuthorized()
-        return try await playlists(from: MediaQueryRequest(filter: .init(predicate, comparisonType), grouping: .playlist))
-    }
-
-    // MARK: - Private methods
-
-    private func playlists(from request: MediaQueryRequest) async throws -> [MPMediaPlaylist] {
-        let collections = try await service.collections(request)
-        let playlists = collections.compactMap { $0 as? MPMediaPlaylist }
-        if playlists.count != collections.count {
-            log.debug("Discarded \(collections.count - playlists.count) non-playlist collections for \(request.description)")
-        }
-        return playlists
-    }
-
-    private func fetchSorted<Element, Value: Comparable>(
-        _ label: String,
-        sortedBy sortingKey: SortKey<Element, Value>?,
-        order: SortOrder,
-        fetch: () async throws -> [Element]
-    ) async throws -> [Element] {
-        #if DEBUG
-            let start = Date()
-            log.debug("Started fetching and sorting \(label)")
-        #endif
-
-        try await checkIfAuthorized()
-        let elements = try await fetch()
-
-        #if DEBUG
-            log.debug("Fetched \(elements.count) \(label) in \(Date.now.timeIntervalSince(start)) seconds")
-        #endif
-
-        guard let sortingKey else { return elements }
-
-        #if DEBUG
-            let startSorting = Date()
-        #endif
-
-        let sorted = elements.sorted(using: KeyPathComparator(sortingKey, order: order))
-
-        #if DEBUG
-            log.debug("Sorted \(elements.count) \(label) in \(Date.now.timeIntervalSince(startSorting)) seconds")
-            log.debug("Fetched and sorted \(elements.count) \(label) in \(Date.now.timeIntervalSince(start)) seconds")
-        #endif
-
-        return sorted
+        return try await attempt { try await service.collectionSections(request) }
     }
 
     // MARK: - Playlist Writes
 
-    public func playlist(id: UUID) async throws -> Playlist? {
+    public func playlist(id: UUID) async throws(MusicLibraryError) -> Playlist? {
         try await checkIfAuthorized()
-        return try await service.playlist(id: id, creating: nil).map(Playlist.init)
+        return try await attempt { try await service.playlist(id: id, creating: nil) }.map(Playlist.init)
     }
 
-    public func playlist(id: UUID, orCreate metadata: PlaylistMetadata) async throws -> Playlist {
+    public func playlist(id: UUID, orCreate metadata: PlaylistMetadata) async throws(MusicLibraryError) -> Playlist {
         try await checkIfAuthorized()
-        guard let playlist = try await service.playlist(id: id, creating: metadata) else {
+        guard let playlist = try await attempt({ try await service.playlist(id: id, creating: metadata) }) else {
             throw MusicLibraryError.playlistUnavailable(id)
         }
         return Playlist(playlist)
     }
 
-    public func add(_ songs: [Song], to playlist: Playlist) async throws {
+    public func add(_ songs: [Song], to playlist: Playlist) async throws(MusicLibraryError) {
         try await checkIfAuthorized()
         guard !songs.isEmpty else { return }
-        try await service.add(songs.map(\.mediaItem), to: playlist.mediaPlaylist)
+        try await attempt { try await service.add(songs.map(\.mediaItem), to: playlist.mediaPlaylist) }
     }
 
     @discardableResult
-    public func add(productID: String) async throws -> [Song] {
+    public func add(productID: String) async throws(MusicLibraryError) -> [Song] {
         try await checkIfAuthorized()
-        return try await service.addItem(productID: productID).flatMap { entity -> [Song] in
+        return try await attempt { try await service.addItem(productID: productID) }.flatMap { entity -> [Song] in
             switch entity {
             case let item as MPMediaItem: [Song(item)]
             case let collection as MPMediaItemCollection: collection.items.map(Song.init)
@@ -309,12 +164,20 @@ public final class MusicLibrary: MusicLibraryProtocol {
         }
     }
 
-    public func add(productID: String, to playlist: Playlist) async throws {
+    public func add(productID: String, to playlist: Playlist) async throws(MusicLibraryError) {
         try await checkIfAuthorized()
-        try await service.add(productID: productID, to: playlist.mediaPlaylist)
+        try await attempt { try await service.add(productID: productID, to: playlist.mediaPlaylist) }
     }
 
-    private func checkIfAuthorized() async throws {
+    private func attempt<Result>(_ operation: () async throws -> Result) async throws(MusicLibraryError) -> Result {
+        do {
+            return try await operation()
+        } catch {
+            throw MusicLibraryError.wrapping(error)
+        }
+    }
+
+    private func checkIfAuthorized() async throws(MusicLibraryError) {
         let status = authorizationStatus
 
         guard case .authorized = status else {
@@ -322,39 +185,10 @@ public final class MusicLibrary: MusicLibraryProtocol {
             let statusAfterRequest = try await requestAuthorization()
 
             guard case .authorized = statusAfterRequest else {
-                throw AuthorizationManagerError.unauthorized(statusAfterRequest)
+                throw MusicLibraryError.unauthorized(statusAfterRequest)
             }
 
             return
         }
-    }
-}
-
-// MARK: - Deprecated
-extension MusicLibrary {
-    @available(*, deprecated, renamed: "mediaItems(ofType:matching:_:groupingType:)", message: "Removed in 1.0.0.")
-    public func fetch(
-        _ type: MPMediaType,
-        with predicate: MediaItemPredicateInfo,
-        _ comparisonType: MPMediaPredicateComparison,
-        groupingType: MPMediaGrouping
-    ) async throws -> [MPMediaItem] {
-        return try await mediaItems(ofType: type, matching: predicate, comparisonType, groupingType: groupingType)
-    }
-
-    @available(*, deprecated, renamed: "songs()", message: "Removed in 1.0.0.")
-    public func fetchSongs<T: Comparable>(
-        sortedBy sortingKey: (KeyPath<MPMediaItem, T> & Sendable)?,
-        order: SortOrder
-    ) async throws -> [MPMediaItem] {
-        return try await songs(sortedBy: sortingKey, order: order)
-    }
-
-    @available(*, deprecated, renamed: "songs(matching:comparisonType:)", message: "Removed in 1.0.0.")
-    public func fetchSong(
-        with predicate: MediaItemPredicateInfo,
-        comparisonType: MPMediaPredicateComparison = .equalTo
-    ) async throws -> [MPMediaItem] {
-        return try await songs(matching: predicate, comparisonType: comparisonType)
     }
 }

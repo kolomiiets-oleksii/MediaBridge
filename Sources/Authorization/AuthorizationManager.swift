@@ -28,7 +28,7 @@ public final class AuthorizationManager<T: MediaLibraryProtocol>: AuthorizationM
     /// shows the system prompt only if the user hasn't decided yet.
     ///
     /// - Returns: `.authorized` if permission is granted
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is denied or restricted
+    /// - Throws: ``MusicLibraryError/unauthorized(_:)`` if access is denied or restricted
     @discardableResult
     public func authorize() async throws -> MPMediaLibraryAuthorizationStatus {
         guard status() != .authorized else {
@@ -39,7 +39,7 @@ public final class AuthorizationManager<T: MediaLibraryProtocol>: AuthorizationM
         let status = await T.requestAuthorization()
         
         guard status == .authorized else {
-            throw AuthorizationManagerError.unauthorized(status)
+            throw MusicLibraryError.unauthorized(status)
         }
         
         log.info("Access to music library is authorized")

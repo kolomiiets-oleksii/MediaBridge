@@ -10,12 +10,7 @@ struct MediaBridgeSampleApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(\.library, library)
+                .musicLibrary(library)
         }
     }
-}
-
-extension EnvironmentValues {
-    @Entry var library: MusicLibraryProtocol = defaultLibrary
-    private static let defaultLibrary = MusicLibrary()
 }

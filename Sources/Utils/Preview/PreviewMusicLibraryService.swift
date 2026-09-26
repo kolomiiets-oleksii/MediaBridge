@@ -26,16 +26,31 @@ import MediaPlayer
         func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection] {
             let collections: [MPMediaItemCollection] =
                 switch request.grouping {
-                case .album, .albumArtist: albums
-                case .artist: artists
+                case .album where !albums.isEmpty, .albumArtist where !albums.isEmpty: albums
+                case .artist where !artists.isEmpty: artists
                 case .playlist: playlists
-                default: []
+                case .title: []
+                default: grouped(songs, by: request.grouping)
                 }
             return collections.filter { collection in
                 request.filters.allSatisfy { filter in
                     filter.matches(collection) || collection.items.contains { filter.matches($0) }
                 }
             }
+        }
+
+        private func grouped(_ songs: [MPMediaItem], by grouping: MPMediaGrouping) -> [MPMediaItemCollection] {
+            let idProperty = MPMediaItem.persistentIDProperty(forGroupingType: grouping)
+            let titleProperty = MPMediaItem.titleProperty(forGroupingType: grouping)
+            var order: [String] = []
+            var groups: [String: [MPMediaItem]] = [:]
+            for song in songs {
+                let key = song.value(forProperty: idProperty).map { "\($0)" } ?? song.value(forProperty: titleProperty) as? String
+                guard let key else { continue }
+                if groups[key] == nil { order.append(key) }
+                groups[key, default: []].append(song)
+            }
+            return order.compactMap { groups[$0].map(MPMediaItemCollection.init) }
         }
 
         func playlist(id: UUID, creating metadata: PlaylistMetadata?) async throws -> MPMediaPlaylist? {

@@ -63,6 +63,21 @@ struct LibraryQueryTests {
             #expect(songs.map(\.title) == ["Hello", "Yesterday"])
         }
 
+        @Test("When comparing an optional date, then missing dates never match")
+        func optionalComparison() async throws {
+            let old = Date(timeIntervalSince1970: 0)
+            let service = MockMusicLibraryService(items: [
+                StubMediaItem([MPMediaItemPropertyTitle: "Old", MPMediaItemPropertyReleaseDate: old]),
+                StubMediaItem([MPMediaItemPropertyTitle: "New", MPMediaItemPropertyReleaseDate: Date()]),
+                StubMediaItem([MPMediaItemPropertyTitle: "Undated"]),
+            ])
+
+            let songs = try await MusicLibrary(auth: .mock, service: service)
+                .fetch(Song.query.filter(\.releaseDate, .greaterThan(old)))
+
+            #expect(songs.map(\.title) == ["New"])
+        }
+
         @Test("When one filter is pushed and another isn't, then both apply")
         func mixed() async throws {
             let songs = try await library.fetch(
@@ -135,7 +150,7 @@ struct LibraryQueryTests {
             let service = MockMusicLibraryService()
             let library = MusicLibrary(auth: .mock(isAuthorized: false, authStatus: .denied), service: service)
 
-            await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) {
+            await #expect(throws: MusicLibraryError.unauthorized(.denied)) {
                 _ = try await library.fetch(Song.query)
             }
             #expect(service.requests.isEmpty)

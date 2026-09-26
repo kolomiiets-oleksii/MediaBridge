@@ -31,19 +31,23 @@ extension LibraryChangesProtocol where Self == LiveLibraryChanges {
 /// Notifications only arrive once the user has authorized music library access.
 public struct LiveLibraryChanges: LibraryChangesProtocol {
     private let center: NotificationCenter
-    private let library: TrackedLibrary
+    private let library: @Sendable () -> TrackedLibrary
 
+    /// - Parameters:
+    ///   - center: The notification center that delivers `MPMediaLibraryDidChange`.
+    ///   - library: Resolved when ``changes()`` is first observed, so creating a live
+    ///     ``MusicLibrary`` doesn't touch MediaPlayer.
     public init(
         center: NotificationCenter = .default,
-        library: any MediaLibraryChangeTracking = MPMediaLibrary.default()
+        library: @autoclosure @escaping @Sendable () -> any MediaLibraryChangeTracking = MPMediaLibrary.default()
     ) {
         self.center = center
-        self.library = TrackedLibrary(library)
+        self.library = { TrackedLibrary(library()) }
     }
 
     public func changes() -> AsyncStream<Date> {
         let (stream, continuation) = AsyncStream<Date>.makeStream(bufferingPolicy: .bufferingNewest(1))
-        let library = library
+        let library = library()
         let observer = ObserverToken(
             center.addObserver(forName: .MPMediaLibraryDidChange, object: nil, queue: nil) { _ in
                 continuation.yield(library.lastModifiedDate)

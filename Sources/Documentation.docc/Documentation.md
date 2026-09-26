@@ -6,11 +6,13 @@
     @PageColor(orange)
 }
 
-A Swift bridge for MPMediaLibrary integration. Provides easy, lightweight and flexible methods to fetch media library content from your phone.
+The user's music library in modern Swift: typed models, key-path queries, typed errors, and a SwiftUI property wrapper.
 
 ## Overview
 
-MediaBridge simplifies access to the device's music library with a clean API that handles authorization automatically: the first fetch shows the system prompt if the user hasn't decided yet. It's built on two core components: a service layer for querying and an authorization manager for permissions.
+MediaBridge wraps MediaPlayer's library in value types you query with key paths. It asks for access on the first fetch, runs the filters MediaPlayer supports inside its own query, and never copies or stores what it fetches, so large libraries stay fast.
+
+The library is a bridge: ``MusicLibraryProtocol`` is what your code uses, and ``MusicLibraryServiceProtocol`` is the MediaPlayer layer underneath, which you can replace in tests.
 
 ### Before You Start
 
@@ -21,126 +23,84 @@ Add `NSAppleMusicUsageDescription` to your app's Info.plist with a sentence expl
 <string>Shows your songs so you can find the ones you skip most.</string>
 ```
 
-### Querying with Models
+### SwiftUI
 
-``Song``, ``Album``, ``Artist``, ``Genre``, and ``Playlist`` wrap MediaPlayer objects without copying them, so fetching a large library costs no property reads. Describe what you want with a ``LibraryQuery`` and run it with ``MusicLibraryProtocol/fetch(_:)``:
+``MediaQuery`` fetches for a view and keeps the results current when the query or the library changes:
 
 ```swift
-let mostPlayed = try await library.fetch(
-    Song.query
-        .filter(\.isCloudItem, .equals(false))
-        .filter(\.playCount, .atLeast(10))
+struct SongList: View {
+    @MediaQuery(.songs.sorted(by: \.playCount, .reverse)) var songs
+
+    var body: some View {
+        List(songs) { song in
+            HStack {
+                ArtworkImage(song, size: 44)
+                Text(song.title ?? "Unknown")
+            }
+        }
+        .overlay {
+            if let error = $songs.error {
+                Text(error.localizedDescription)
+            }
+        }
+        .refreshable { await $songs.reload() }
+    }
+}
+```
+
+It reads the library from the `musicLibrary` environment value, which defaults to the device's library. Set another one, such as a preview library, with `.musicLibrary(_:)`.
+
+Name the queries your app repeats, and use them anywhere a query goes:
+
+```swift
+extension LibraryQuery where Element == Song {
+    static var mostSkipped: Self { .songs.filter(\.skipCount > 0).sorted(by: \.skipCount, .reverse) }
+}
+
+@MediaQuery(.mostSkipped) var songs
+```
+
+### Queries
+
+A ``LibraryQuery`` starts from `.songs`, `.albums`, `.artists`, `.genres`, `.composers`, `.playlists`, `.podcasts`, `.podcastEpisodes`, `.audiobooks`, or `.compilations`, and is refined with filters, orderings, and a limit:
+
+```swift
+let library = MusicLibrary()
+
+let topLocal = try await library.fetch(
+    .songs
+        .filter(\.isCloudItem == false)
+        .filter(\.playCount >= 10)
         .sorted(by: \.playCount, .reverse)
         .then(by: \.title)
         .limit(25)
 )
 
-let adeleAlbums = try await library.fetch(Album.query.filter(\.artist, .equals("Adele")))
+let adele = try await library.fetch(.albums.filter(\.artist == "Adele"))
+let sections = try await library.sections(.artists)   // A–Z, like the Music app
 ```
 
-Filters MediaPlayer supports run inside its query; the rest run in memory. Artwork is rendered on demand and never stored:
+`==` on a property MediaPlayer can filter and `.contains` run inside MediaPlayer's query; every other condition runs in memory. Sorting reads each key once per element.
+
+Each model keeps its MediaPlayer object, such as `song.mediaItem`, for APIs like `MPMusicPlayerController`. Artwork is rendered on demand and never stored; ``ArtworkImage`` loads it when it appears.
+
+### Errors
+
+Every call throws ``MusicLibraryError``, so `catch` blocks match its cases without casting:
 
 ```swift
-List(mostPlayed) { song in
-    HStack {
-        ArtworkImage(song, size: 44)
-        Text(song.title ?? "")
-    }
-}
-```
-
-Each model keeps its MediaPlayer object (`song.mediaItem`) for APIs such as `MPMusicPlayerController`.
-
-### General Usage
-
-Create a `MusicLibrary` and start fetching:
-
-```swift
-let library = MusicLibrary()
-let songs = try await library.songs()
-let albums = try await library.albums()
-let artists = try await library.artists()
-let playlists = try await library.playlists()
-```
-
-Fetch with sorting:
-
-```swift
-// Songs sorted by skip count (most skipped first)
-let songs = try await library.songs(sortedBy: \MPMediaItem.skipCount, order: .reverse)
-
-// Albums sorted by track count
-let albums = try await library.albums(sortedBy: \MPMediaItemCollection.count, order: .reverse)
-```
-
-Filter using predicates:
-
-```swift
-// Songs by a specific artist
-let artistSongs = try await library.songs(matching: .artist("Taylor Swift"), comparisonType: .contains)
-
-// Albums matching a genre
-let rockAlbums = try await library.albums(matching: .genre("Rock"), .equalTo, groupingType: .album)
-
-// Playlists matching a name
-let chillPlaylists = try await library.playlists(matching: .playlistName("Chill"), .contains)
-
-// Only songs stored on the device
-let localSongs = try await library.songs(matching: .isCloudItem(false), comparisonType: .equalTo)
-```
-
-Beyond songs, albums, artists, and playlists, there are genres, composers, compilations, podcasts, and audiobooks, plus ``MusicLibraryProtocol/items(_:)`` and ``MusicLibraryProtocol/collections(_:)`` for any ``MediaQueryRequest``:
-
-```swift
-let genres = try await library.genres(sortedBy: \MPMediaItemCollection.count, order: .reverse)
-let podcasts = try await library.podcasts()
-```
-
-Build an A–Z index like the Music app's with sections:
-
-```swift
-let sections = try await library.songSections()   // [MediaSection<MPMediaItem>]
-```
-
-Refresh when the library changes, for example after a sync:
-
-```swift
-.task {
-    for await _ in library.changes {
-        songs = (try? await library.songs()) ?? []
-    }
-}
-```
-
-Or inject it into SwiftUI views via environment values (`library` is a key your app declares):
-
-```swift
-extension EnvironmentValues {
-    @Entry var library: MusicLibraryProtocol = MusicLibrary()
-}
-
-struct ContentView: View {
-    @Environment(\.library) var library
-
-    var body: some View {
-        VStack {
-            // Use library to fetch songs or albums
-        }
-        .task {
-            // Fetches prompt for access on their own; request up front
-            // only to choose when the prompt appears
-            if library.authorizationStatus == .notDetermined {
-                try? await library.requestAuthorization()
-            }
-        }
-    }
+do {
+    songs = try await library.fetch(.songs)
+} catch .unauthorized(.denied) {
+    showSettingsButton = true
+} catch {
+    message = error.localizedDescription
 }
 ```
 
 ### Playlists and Picking Songs
 
-Your app can create its own playlists and add songs to them. Generate the UUID once and keep it:
-the same UUID always returns the same playlist, which also appears in the Music app.
+Your app can create its own playlists and add songs to them. Generate the UUID once and keep it: the same UUID always returns the same playlist, which also appears in the Music app.
 
 ```swift
 let playlist = try await library.playlist(
@@ -152,8 +112,7 @@ try await library.add(songs, to: playlist)
 
 MediaPlayer can't remove songs from a playlist, and only playlists your app created can be changed.
 
-With Apple Music, you can also add catalog songs, albums, and playlists by their product ID, to
-the library or to your playlist. Nothing can remove them from the library afterwards.
+With Apple Music, you can also add catalog songs, albums, and playlists by their product ID, to the library or to your playlist. Nothing can remove them from the library afterwards.
 
 ```swift
 let added = try await library.add(productID: "1440839718")
@@ -169,11 +128,24 @@ Button("Add Songs") { isPicking = true }
     }
 ```
 
-### Service Layer & Authorization
+### Previews
 
-Both the service layer and authorization manager use production-ready implementations by default (`.live`), but you can provide custom implementations for testing or specialized behavior.
+In debug builds, `.preview(...)` builds a ``MusicLibrary`` backed by fixed data, and presets such as `.accessDenied` cover each authorization state. Queries, sorting, and the authorization flow run through the real library, and songs are grouped into albums, artists, genres, and composers when you don't pass collections:
 
-A service answers ``MediaQueryRequest``s with items or collections; ``MusicLibrary`` builds every call from those two methods, and handles authorization, sorting, and playlist filtering itself:
+```swift
+#Preview(traits: .musicLibrary(songs: previewSongs)) {   // iOS 18 and later
+    SongList()
+}
+
+#Preview("Denied") {
+    SongList()
+        .musicLibrary(.accessDenied)
+}
+```
+
+### Service Layer
+
+``MusicLibrary`` handles authorization, typed models, filtering, and sorting on top of a service that runs ``MediaQueryRequest``s. Replace the service to serve fixtures in tests:
 
 ```swift
 struct FixtureService: MusicLibraryServiceProtocol {
@@ -182,49 +154,40 @@ struct FixtureService: MusicLibraryServiceProtocol {
     func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection] { [] }
 }
 
-let library = MusicLibrary(auth: MyAuthorizationManager(), service: FixtureService(songs: fixtures))
+let library = MusicLibrary(service: FixtureService(songs: fixtures))
 ```
 
-### SwiftUI Previews
-
-In debug builds, `.preview(...)` builds a ``MusicLibrary`` backed by fixed data, and presets such as `.accessDenied` cover each authorization state. Sorting, filtering, and the authorization flow run through the real library:
-
-```swift
-#Preview {
-    ContentView()
-        .environment(\.library, .preview(songs: previewSongs))
-}
-
-#Preview("Denied") {
-    ContentView()
-        .environment(\.library, .accessDenied)
-}
-```
+``MusicLibraryProtocol/items(_:)`` and ``MusicLibraryProtocol/collections(_:)`` run a request directly and return MediaPlayer's own types, for anything the typed queries don't cover.
 
 ## Topics
+
+### SwiftUI
+- ``MediaQuery``
+- ``ArtworkImage``
+- ``MediaPicker``
 
 ### Models
 - ``Song``
 - ``Album``
 - ``Artist``
 - ``Genre``
+- ``Composer``
 - ``Playlist``
-- ``ArtworkImage``
-
-### Playlists and Picking
-- ``PlaylistMetadata``
-- ``MusicLibraryError``
-- ``MediaPicker``
+- ``Podcast``
 
 ### Queries
 - ``LibraryQuery``
 - ``LibraryCondition``
+- ``LibraryPredicate``
 - ``LibraryElement``
+- ``CollectionElement``
+- ``MediaSection``
 
-### Fetching Media Items
+### The Library
 - ``MusicLibrary``
 - ``MusicLibraryProtocol``
-- ``MediaSection``
+- ``MusicLibraryError``
+- ``PlaylistMetadata``
 
 ### Library Changes
 - ``LibraryChangesProtocol``
@@ -233,20 +196,12 @@ In debug builds, `.preview(...)` builds a ``MusicLibrary`` backed by fixed data,
 
 ### Service Layer
 - ``MusicLibraryServiceProtocol``
-- ``MediaQueryRequest``
 - ``MusicLibraryService``
+- ``MediaQueryRequest``
 - ``MediaQueryProtocol``
-
-### Sorting
-- ``SortKey``
-- ``FlagKey``
-
-### Filtering & Predicates
 - ``MediaItemPredicateInfo``
 
 ### Authorization
 - ``AuthorizationManagerProtocol``
 - ``AuthorizationManager``
 - ``MediaLibraryProtocol``
-- ``AuthorizationManagerError``
-
