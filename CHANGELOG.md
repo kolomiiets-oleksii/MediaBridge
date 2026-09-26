@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-26
+
+### Added
+- `player.setQueue(with:startingAt:)` queues songs and starts at one of them, for "play from here" in a list.
+- `player.playNext(_:)` and `player.playLater(_:)` insert songs after the current one or at the end of the queue. `systemMusicPlayer` and `applicationQueuePlayer` support these; `applicationMusicPlayer` may ignore them.
+- `player.nowPlayingSong`.
+- `@NowPlaying`, a SwiftUI property wrapper for the song playing now, with `$song.playbackState` and `$song.isPlaying`.
+- The `musicPlayer` environment value and `.musicPlayer(_:)` modifier, defaulting to `applicationMusicPlayer`.
+- `MusicPlayerProtocol`, which `MPMusicPlayerController` conforms to, and `PreviewMusicPlayer` (`.preview(queue:state:)`) for previews and tests.
+
+### Changed
+- `setQueue(with:)` taking `[Song]` moved from `MPMusicPlayerController` to `MusicPlayerProtocol`; existing calls compile unchanged.
+
 ## [1.1.0] - 2026-09-26
 
 ### Added
