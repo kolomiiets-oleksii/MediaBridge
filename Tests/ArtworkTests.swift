@@ -66,13 +66,14 @@ struct ArtworkTests {
         @Test("When no corner radius is given, then it is an eighth of the size")
         func defaultCornerRadius() {
             let view = ArtworkImage(Song(StubMediaItem([:])), size: 48)
-            #expect(view.cornerRadius == 6)
+            #expect(view.size == 48)
+            #expect(view.cornerRadius(side: 48) == 6)
         }
 
         @Test("When a corner radius is given, then the artwork uses it")
         func customCornerRadius() {
             let view = ArtworkImage(Song(StubMediaItem([:])), size: 48, cornerRadius: 4)
-            #expect(view.cornerRadius == 4)
+            #expect(view.cornerRadius(side: 48) == 4)
         }
 
         @Test("When a placeholder is given, then it replaces the default one and keeps the size and corner radius")
@@ -83,8 +84,60 @@ struct ArtworkTests {
 
             let artwork = try #require(view as Any as? ArtworkView<Text>)
             #expect(artwork.size == 48)
-            #expect(artwork.cornerRadius == 4)
+            #expect(artwork.cornerRadius(side: 48) == 4)
             #expect(item.reads.isEmpty)
+        }
+    }
+
+    @Suite("Given artwork without a size")
+    @MainActor
+    struct Flexible {
+        @Test("When 1,000 rows build flexible artwork views, then no song or album property is read")
+        func initReadsNothing() {
+            let items = (0..<1_000).map { _ in StubMediaItem([MPMediaItemPropertyTitle: "Song"]) }
+
+            let songViews = items.map { ArtworkImage(Song($0)) }
+            let albumViews = items.map { ArtworkImage(Album(MPMediaItemCollection(items: [$0]))) }
+
+            #expect(songViews.count + albumViews.count == 2_000)
+            #expect(items.allSatisfy { $0.reads.isEmpty })
+        }
+
+        @Test("When no size is given, then the artwork fills the width it's offered")
+        func fills() {
+            #expect(ArtworkImage(Song(StubMediaItem([:]))).size == nil)
+        }
+
+        @Test("When laid out 160pt wide without a corner radius, then the corners are an eighth of that")
+        func defaultCornerRadius() {
+            let view = ArtworkImage(Album(MPMediaItemCollection(items: [StubMediaItem([:])])))
+            #expect(view.cornerRadius(side: 160) == 20)
+        }
+
+        @Test("When given a corner radius and a placeholder, then both are kept")
+        func placeholder() throws {
+            let view = ArtworkImage(Song(StubMediaItem([:])), cornerRadius: 8).placeholder { Text("No artwork") }
+
+            let artwork = try #require(view as Any as? ArtworkView<Text>)
+            #expect(artwork.size == nil)
+            #expect(artwork.cornerRadius(side: 160) == 8)
+        }
+
+        @Test("When offered 160pt of width, then it lays out as a 160pt square")
+        func laysOutSquare() throws {
+            guard #available(iOS 16, visionOS 1, *) else { return }
+            let renderer = ImageRenderer(content: ArtworkImage(Song(StubMediaItem([:]))).frame(width: 160))
+
+            let image = try #require(renderer.uiImage)
+
+            #expect(image.size == CGSize(width: 160, height: 160))
+        }
+
+        @Test("When the offered width changes, then the artwork renders again at the new size")
+        func rerendersOnResize() {
+            let id = ObjectIdentifier(StubMediaItem([:]))
+            #expect(ArtworkRequest(id: id, side: 120) != ArtworkRequest(id: id, side: 160))
+            #expect(ArtworkRequest(id: id, side: 160) == ArtworkRequest(id: id, side: 160))
         }
     }
 

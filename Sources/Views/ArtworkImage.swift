@@ -17,6 +17,16 @@
     /// }
     /// ```
     ///
+    /// Leave out the size to fill the width the layout offers, such as a grid cell:
+    ///
+    /// ```swift
+    /// LazyVGrid(columns: [GridItem(), GridItem()]) {
+    ///     ForEach(albums) { album in
+    ///         ArtworkImage(album, cornerRadius: 8)
+    ///     }
+    /// }
+    /// ```
+    ///
     /// Replace the default placeholder with ``placeholder(_:)``:
     ///
     /// ```swift
@@ -26,8 +36,8 @@
     public struct ArtworkImage: View {
         private let id: ObjectIdentifier
         private let render: @MainActor (CGSize) -> UIImage?
-        private let size: Double
-        let cornerRadius: Double
+        let size: Double?
+        private let cornerRadius: Double?
 
         /// Creates the artwork view for a song.
         /// - Parameters:
@@ -35,10 +45,7 @@
         ///   - size: The width and height, in points.
         ///   - cornerRadius: The radius of the rounded corners. Defaults to an eighth of `size`.
         public init(_ song: Song, size: Double, cornerRadius: Double? = nil) {
-            id = ObjectIdentifier(song.mediaItem)
-            render = { song.artwork(size: $0) }
-            self.size = size
-            self.cornerRadius = cornerRadius ?? size / 8
+            self.init(song, fixedSize: size, cornerRadius: cornerRadius)
         }
 
         /// Creates the artwork view for an album.
@@ -47,10 +54,43 @@
         ///   - size: The width and height, in points.
         ///   - cornerRadius: The radius of the rounded corners. Defaults to an eighth of `size`.
         public init(_ album: Album, size: Double, cornerRadius: Double? = nil) {
+            self.init(album, fixedSize: size, cornerRadius: cornerRadius)
+        }
+
+        /// Creates the artwork view for a song, as wide as the layout offers and as tall as it is
+        /// wide. The artwork renders at the laid-out size, and again when that size changes.
+        /// - Parameters:
+        ///   - song: The song whose artwork to show.
+        ///   - cornerRadius: The radius of the rounded corners. Defaults to an eighth of the width.
+        public init(_ song: Song, cornerRadius: Double? = nil) {
+            self.init(song, fixedSize: nil, cornerRadius: cornerRadius)
+        }
+
+        /// Creates the artwork view for an album, as wide as the layout offers and as tall as it is
+        /// wide. The artwork renders at the laid-out size, and again when that size changes.
+        /// - Parameters:
+        ///   - album: The album whose artwork to show.
+        ///   - cornerRadius: The radius of the rounded corners. Defaults to an eighth of the width.
+        public init(_ album: Album, cornerRadius: Double? = nil) {
+            self.init(album, fixedSize: nil, cornerRadius: cornerRadius)
+        }
+
+        private init(_ song: Song, fixedSize: Double?, cornerRadius: Double?) {
+            id = ObjectIdentifier(song.mediaItem)
+            render = { song.artwork(size: $0) }
+            size = fixedSize
+            self.cornerRadius = cornerRadius
+        }
+
+        private init(_ album: Album, fixedSize: Double?, cornerRadius: Double?) {
             id = ObjectIdentifier(album.mediaCollection)
             render = { album.artwork(size: $0) }
-            self.size = size
-            self.cornerRadius = cornerRadius ?? size / 8
+            size = fixedSize
+            self.cornerRadius = cornerRadius
+        }
+
+        func cornerRadius(side: Double) -> Double {
+            cornerRadius ?? side / 8
         }
 
         public var body: some View {
@@ -61,14 +101,46 @@
         ///
         /// The placeholder is framed and clipped like the artwork.
         public func placeholder<Placeholder: View>(@ViewBuilder _ content: () -> Placeholder) -> some View {
-            ArtworkView(id: id, render: render, size: size, cornerRadius: cornerRadius, placeholder: content())
+            ArtworkView(id: id, render: render, size: size, fixedCornerRadius: cornerRadius, placeholder: content())
         }
+    }
+
+    struct ArtworkRequest: Equatable {
+        let id: ObjectIdentifier
+        let side: Double
     }
 
     struct ArtworkView<Placeholder: View>: View {
         let id: ObjectIdentifier
         let render: @MainActor (CGSize) -> UIImage?
-        let size: Double
+        let size: Double?
+        let fixedCornerRadius: Double?
+        let placeholder: Placeholder
+
+        func cornerRadius(side: Double) -> Double {
+            fixedCornerRadius ?? side / 8
+        }
+
+        var body: some View {
+            if let size {
+                ArtworkSquare(id: id, render: render, side: size, cornerRadius: cornerRadius(side: size), placeholder: placeholder)
+            } else {
+                Color.clear
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay {
+                        GeometryReader { proxy in
+                            let side = proxy.size.width
+                            ArtworkSquare(id: id, render: render, side: side, cornerRadius: cornerRadius(side: side), placeholder: placeholder)
+                        }
+                    }
+            }
+        }
+    }
+
+    struct ArtworkSquare<Placeholder: View>: View {
+        let id: ObjectIdentifier
+        let render: @MainActor (CGSize) -> UIImage?
+        let side: Double
         let cornerRadius: Double
         let placeholder: Placeholder
         @State private var image: UIImage?
@@ -81,11 +153,12 @@
                     placeholder
                 }
             }
-            .frame(width: size, height: size)
+            .frame(width: side, height: side)
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .accessibilityHidden(true)
-            .task(id: id) {
-                image = await render(CGSize(width: size, height: size))?.byPreparingForDisplay()
+            .task(id: ArtworkRequest(id: id, side: side)) {
+                guard side > 0 else { return }
+                image = await render(CGSize(width: side, height: side))?.byPreparingForDisplay()
             }
         }
     }
