@@ -72,22 +72,6 @@ struct LibraryChangesTests {
             #expect(await task.value == false)
         }
     }
-
-    @Suite("Given a custom MusicLibraryProtocol conformer")
-    struct CustomConformer {
-        @Test("When it doesn't implement changes, then a silent default stream is provided")
-        func defaultStream() async {
-            let library: any MusicLibraryProtocol = MinimalLibrary()
-            let task = Task { () -> Bool in
-                for await _ in library.changes { return true }
-                return false
-            }
-            try? await Task.sleep(nanoseconds: 50_000_000)
-            task.cancel()
-
-            #expect(await task.value == false)
-        }
-    }
 }
 
 final class MockChangeTracker: MediaLibraryChangeTracking, @unchecked Sendable {
@@ -114,21 +98,4 @@ final class MockChangeTracker: MediaLibraryChangeTracking, @unchecked Sendable {
 struct MockLibraryChanges: LibraryChangesProtocol {
     let stream: AsyncStream<Date>
     func changes() -> AsyncStream<Date> { stream }
-}
-
-/// Implements only the pre-0.12 requirements, standing in for an app's own test double.
-private struct MinimalLibrary: MusicLibraryProtocol {
-    var authorizationStatus: MPMediaLibraryAuthorizationStatus { .authorized }
-    func requestAuthorization() async throws -> MPMediaLibraryAuthorizationStatus { .authorized }
-    func fetchAll(_ type: MPMediaType, groupingType: MPMediaGrouping) async throws -> [MPMediaItem] { [] }
-    func songs<T: Comparable>(sortedBy sortingKey: SortKey<MPMediaItem, T>?, order: SortOrder) async throws -> [MPMediaItem] { [] }
-    func songs(matching predicate: MediaItemPredicateInfo, comparisonType: MPMediaPredicateComparison) async throws -> [MPMediaItem] { [] }
-    func mediaItems(ofType type: MPMediaType, matching predicate: MediaItemPredicateInfo, _ comparisonType: MPMediaPredicateComparison, groupingType: MPMediaGrouping) async throws -> [MPMediaItem] { [] }
-    func mediaItemCollections(ofType type: MPMediaType, matching predicate: MediaItemPredicateInfo, _ comparisonType: MPMediaPredicateComparison, groupingType: MPMediaGrouping) async throws -> [MPMediaItemCollection] { [] }
-    func albums(matching predicate: MediaItemPredicateInfo, _ comparisonType: MPMediaPredicateComparison, groupingType: MPMediaGrouping) async throws -> [MPMediaItemCollection] { [] }
-    func albums<T: Comparable>(sortedBy sortingKey: SortKey<MPMediaItemCollection, T>?, order: SortOrder) async throws -> [MPMediaItemCollection] { [] }
-    func artists(matching predicate: MediaItemPredicateInfo, _ comparisonType: MPMediaPredicateComparison, groupingType: MPMediaGrouping) async throws -> [MPMediaItemCollection] { [] }
-    func artists<T: Comparable>(sortedBy sortingKey: SortKey<MPMediaItemCollection, T>?, order: SortOrder) async throws -> [MPMediaItemCollection] { [] }
-    func playlists(matching predicate: MediaItemPredicateInfo, _ comparisonType: MPMediaPredicateComparison) async throws -> [MPMediaPlaylist] { [] }
-    func playlists<T: Comparable>(sortedBy sortingKey: SortKey<MPMediaPlaylist, T>?, order: SortOrder) async throws -> [MPMediaPlaylist] { [] }
 }

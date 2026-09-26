@@ -103,11 +103,10 @@ struct MultiFilterTests {
         #expect(captures.propertyPredicate(forProperty: MPMediaItemPropertyGenre) != nil)
     }
 
-    @Test("Given a request built with one filter, when reading filter, then it is that filter")
-    func singleFilterCompatibility() {
+    @Test("Given a request built with one filter, when reading filters, then it holds that filter")
+    func singleFilter() {
         let request = MediaQueryRequest(mediaType: .music, filter: .init(.genre("Jazz")), grouping: .title)
         #expect(request.filters == [.init(.genre("Jazz"))])
-        #expect(request.filter == .init(.genre("Jazz")))
     }
 
     @Test("Given two filters, when a preview answers, then items must match both")
@@ -119,38 +118,4 @@ struct MultiFilterTests {
         let items = try await library.items(jazzByMiles)
         #expect(items.map(\.title) == ["So What"])
     }
-
-    @Test("Given a pre-0.12 conformer, when asked for two filters, then the first runs in its query and the rest in memory")
-    func legacyConformer() async throws {
-        let library = SingleFilterLibrary(items: [
-            StubMediaItem([MPMediaItemPropertyGenre: "Jazz", MPMediaItemPropertyArtist: "Miles Davis"]),
-            StubMediaItem([MPMediaItemPropertyGenre: "Jazz", MPMediaItemPropertyArtist: "Dave Brubeck"]),
-        ])
-        let items = try await library.items(jazzByMiles)
-        #expect(items.count == 1)
-        #expect(library.receivedPredicate == .genre("Jazz"))
-    }
-}
-
-private final class SingleFilterLibrary: MusicLibraryProtocol, @unchecked Sendable {
-    let stored: [MPMediaItem]
-    var receivedPredicate: MediaItemPredicateInfo?
-    init(items: [MPMediaItem]) { stored = items }
-
-    var authorizationStatus: MPMediaLibraryAuthorizationStatus { .authorized }
-    func requestAuthorization() async throws -> MPMediaLibraryAuthorizationStatus { .authorized }
-    func fetchAll(_ type: MPMediaType, groupingType: MPMediaGrouping) async throws -> [MPMediaItem] { stored }
-    func mediaItems(ofType type: MPMediaType, matching predicate: MediaItemPredicateInfo, _ comparisonType: MPMediaPredicateComparison, groupingType: MPMediaGrouping) async throws -> [MPMediaItem] {
-        receivedPredicate = predicate
-        return stored
-    }
-    func mediaItemCollections(ofType type: MPMediaType, matching predicate: MediaItemPredicateInfo, _ comparisonType: MPMediaPredicateComparison, groupingType: MPMediaGrouping) async throws -> [MPMediaItemCollection] { [] }
-    func songs<T: Comparable>(sortedBy sortingKey: SortKey<MPMediaItem, T>?, order: SortOrder) async throws -> [MPMediaItem] { [] }
-    func songs(matching predicate: MediaItemPredicateInfo, comparisonType: MPMediaPredicateComparison) async throws -> [MPMediaItem] { [] }
-    func albums(matching predicate: MediaItemPredicateInfo, _ comparisonType: MPMediaPredicateComparison, groupingType: MPMediaGrouping) async throws -> [MPMediaItemCollection] { [] }
-    func albums<T: Comparable>(sortedBy sortingKey: SortKey<MPMediaItemCollection, T>?, order: SortOrder) async throws -> [MPMediaItemCollection] { [] }
-    func artists(matching predicate: MediaItemPredicateInfo, _ comparisonType: MPMediaPredicateComparison, groupingType: MPMediaGrouping) async throws -> [MPMediaItemCollection] { [] }
-    func artists<T: Comparable>(sortedBy sortingKey: SortKey<MPMediaItemCollection, T>?, order: SortOrder) async throws -> [MPMediaItemCollection] { [] }
-    func playlists(matching predicate: MediaItemPredicateInfo, _ comparisonType: MPMediaPredicateComparison) async throws -> [MPMediaPlaylist] { [] }
-    func playlists<T: Comparable>(sortedBy sortingKey: SortKey<MPMediaPlaylist, T>?, order: SortOrder) async throws -> [MPMediaPlaylist] { [] }
 }

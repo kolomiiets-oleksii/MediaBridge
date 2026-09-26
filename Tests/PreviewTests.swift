@@ -16,26 +16,47 @@ struct PreviewTests {
 
         @Test("When sorted by play count in reverse, then the real sorting runs")
         func sorts() async throws {
-            let songs = try await library.songs(sortedBy: \MPMediaItem.playCount, order: .reverse)
+            let songs = try await library.fetch(Song.query.sorted(by: \.playCount, .reverse))
             #expect(songs.map(\.title) == ["Yesterday", "Hello", "Help!"])
         }
 
-        @Test("When matching an artist with equalTo, then only that artist's songs come back")
+        @Test("When filtering by artist, then only that artist's songs come back")
         func filtersEqualTo() async throws {
-            let songs = try await library.songs(matching: .artist("The Beatles"), comparisonType: .equalTo)
+            let songs = try await library.fetch(Song.query.filter(\.artist, .equals("The Beatles")))
             #expect(songs.map(\.title) == ["Yesterday", "Help!"])
         }
 
-        @Test("When matching a title with contains, then the match ignores case")
+        @Test("When filtering a title with contains, then the match ignores case")
         func filtersContains() async throws {
-            let songs = try await library.songs(matching: .title("HEL"), comparisonType: .contains)
+            let songs = try await library.fetch(Song.query.filter(\.title, .contains("HEL")))
             #expect(songs.map(\.title) == ["Hello", "Help!"])
         }
 
         @Test("When fetched unsorted, then the given order is kept")
         func keepsOrder() async throws {
-            let songs = try await library.songs()
+            let songs = try await library.fetch(Song.query)
             #expect(songs.map(\.title) == ["Hello", "Yesterday", "Help!"])
+        }
+
+        @Test("When fetching artists without giving any, then the songs are grouped by artist")
+        func derivesArtists() async throws {
+            let artists = try await library.fetch(Artist.query)
+            #expect(artists.map(\.name) == ["Adele", "The Beatles"])
+            #expect(artists.map(\.songCount) == [1, 2])
+        }
+
+        @Test("When fetching genres, then the songs are grouped by genre")
+        func derivesGenres() async throws {
+            let library: MusicLibrary = .preview(songs: [
+                StubMediaItem([MPMediaItemPropertyTitle: "A", MPMediaItemPropertyGenre: "Rock"]),
+                StubMediaItem([MPMediaItemPropertyTitle: "B", MPMediaItemPropertyGenre: "Jazz"]),
+                StubMediaItem([MPMediaItemPropertyTitle: "C", MPMediaItemPropertyGenre: "Rock"]),
+            ])
+
+            let genres = try await library.fetch(Genre.query)
+
+            #expect(genres.map(\.name) == ["Rock", "Jazz"])
+            #expect(genres.first?.songs.map(\.title) == ["A", "C"])
         }
     }
 
@@ -48,18 +69,18 @@ struct PreviewTests {
             let playlist = MPMediaPlaylist(items: [])
             let library: MusicLibrary = .preview(albums: [album], artists: [artist], playlists: [playlist])
 
-            #expect(try await library.albums().map(ObjectIdentifier.init) == [ObjectIdentifier(album)])
-            #expect(try await library.artists().map(ObjectIdentifier.init) == [ObjectIdentifier(artist)])
-            #expect(try await library.playlists().map(ObjectIdentifier.init) == [ObjectIdentifier(playlist)])
+            #expect(try await library.fetch(Album.query).map { ObjectIdentifier($0.mediaCollection) } == [ObjectIdentifier(album)])
+            #expect(try await library.fetch(Artist.query).map { ObjectIdentifier($0.mediaCollection) } == [ObjectIdentifier(artist)])
+            #expect(try await library.fetch(Playlist.query).map { ObjectIdentifier($0.mediaPlaylist) } == [ObjectIdentifier(playlist)])
         }
 
-        @Test("When matching albums by artist, then an album matches if any of its songs does")
+        @Test("When filtering albums by artist, then an album matches if any of its songs does")
         func filtersCollectionsByItems() async throws {
             let adele = MPMediaItemCollection(items: [StubMediaItem.song("Hello", by: "Adele")])
             let beatles = MPMediaItemCollection(items: [StubMediaItem.song("Help!", by: "The Beatles")])
             let library: MusicLibrary = .preview(albums: [adele, beatles])
 
-            let albums = try await library.albums(matching: .artist("Adele"), .equalTo, groupingType: .album)
+            let albums = try await library.collections(MediaQueryRequest(mediaType: .music, filter: .init(.artist("Adele")), grouping: .album))
 
             #expect(albums.map(ObjectIdentifier.init) == [ObjectIdentifier(adele)])
         }
@@ -71,19 +92,19 @@ struct PreviewTests {
         func denied() async {
             let library: MusicLibrary = .accessDenied
             #expect(library.authorizationStatus == .denied)
-            await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) { _ = try await library.songs() }
+            await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) { _ = try await library.fetch(Song.query) }
         }
 
         @Test("When access is restricted, then fetching throws unauthorized(.restricted)")
         func restricted() async {
             let library: MusicLibrary = .accessRestricted
-            await #expect(throws: AuthorizationManagerError.unauthorized(.restricted)) { _ = try await library.songs() }
+            await #expect(throws: AuthorizationManagerError.unauthorized(.restricted)) { _ = try await library.fetch(Song.query) }
         }
 
         @Test("When access is authorized, then fetching succeeds")
         func authorized() async throws {
             let library: MusicLibrary = .accessAuthorized
-            #expect(try await library.songs().isEmpty)
+            #expect(try await library.fetch(Song.query).isEmpty)
         }
 
         @Test("When the request grants access, then the status becomes authorized")
@@ -102,32 +123,6 @@ struct PreviewTests {
             await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) {
                 try await library.requestAuthorization()
             }
-        }
-    }
-
-    @Suite("Given code written against the 0.10 preview API")
-    struct Deprecated {
-        @Test("When using the old preview parameters, then their songs are still served")
-        @available(*, deprecated)
-        func oldParameters() async throws {
-            let song = StubMediaItem.song("Old")
-            let library: MusicLibrary = .preview(fetchedSongs: [song])
-            #expect(try await library.songs().map(\.title) == ["Old"])
-        }
-
-        @Test("When constructing PreviewMusicLibrary directly, then it still builds a working library")
-        @available(*, deprecated)
-        func oldInitializer() async throws {
-            let library = PreviewMusicLibrary(
-                status: .authorized,
-                statusAfterRequest: .authorized,
-                fetchedAllMedia: [],
-                fetchedMedia: [],
-                fetchedSongs: [StubMediaItem.song("Old")],
-                filteredSongs: [],
-                filteredAlbums: []
-            )
-            #expect(try await library.songs().map(\.title) == ["Old"])
         }
     }
 }

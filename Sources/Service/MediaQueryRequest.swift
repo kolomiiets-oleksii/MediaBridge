@@ -36,12 +36,6 @@ public struct MediaQueryRequest: Sendable, Equatable, CustomStringConvertible {
     /// How results are grouped into collections.
     public var grouping: MPMediaGrouping
 
-    /// The first filter, or `nil` for none. Setting it replaces every filter.
-    public var filter: Filter? {
-        get { filters.first }
-        set { filters = newValue.map { [$0] } ?? [] }
-    }
-
     public init(mediaType: MPMediaType? = nil, filter: Filter? = nil, grouping: MPMediaGrouping) {
         self.init(mediaType: mediaType, filters: filter.map { [$0] } ?? [], grouping: grouping)
     }

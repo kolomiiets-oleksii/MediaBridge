@@ -63,6 +63,37 @@ public struct LibraryQuery<Element: LibraryElement>: @unchecked Sendable {
         return copy
     }
 
+    /// Orders results by an optional `keyPath`, replacing any previous ordering. Missing values
+    /// sort first in `.forward` order.
+    public func sorted<Value: Comparable>(by keyPath: KeyPath<Element, Value?>, _ order: SortOrder = .forward) -> Self {
+        var copy = self
+        copy.orderings = [Self.ordering(keyPath.appending(path: \.nilFirst), order)]
+        return copy
+    }
+
+    /// Breaks ties in the current ordering by an optional `keyPath`. Missing values sort first in
+    /// `.forward` order.
+    public func then<Value: Comparable>(by keyPath: KeyPath<Element, Value?>, _ order: SortOrder = .forward) -> Self {
+        var copy = self
+        copy.orderings.append(Self.ordering(keyPath.appending(path: \.nilFirst), order))
+        return copy
+    }
+
+    /// Orders results by a flag, replacing any previous ordering. `false` sorts first in
+    /// `.forward` order.
+    public func sorted(by keyPath: KeyPath<Element, Bool>, _ order: SortOrder = .forward) -> Self {
+        var copy = self
+        copy.orderings = [Self.ordering(keyPath.appending(path: \.sortRank), order)]
+        return copy
+    }
+
+    /// Breaks ties in the current ordering by a flag. `false` sorts first in `.forward` order.
+    public func then(by keyPath: KeyPath<Element, Bool>, _ order: SortOrder = .forward) -> Self {
+        var copy = self
+        copy.orderings.append(Self.ordering(keyPath.appending(path: \.sortRank), order))
+        return copy
+    }
+
     /// Returns at most `count` elements, after filtering and sorting.
     public func limit(_ count: Int) -> Self {
         var copy = self
@@ -139,4 +170,25 @@ extension MusicLibraryProtocol {
             return elements.isEmpty ? nil : MediaSection(title: section.title, elements: elements)
         }
     }
+}
+
+struct NilFirst<Wrapped: Comparable>: Comparable {
+    let value: Wrapped?
+
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        switch (lhs.value, rhs.value) {
+        case (nil, nil): false
+        case (nil, _): true
+        case (_, nil): false
+        case let (lhs?, rhs?): lhs < rhs
+        }
+    }
+}
+
+extension Optional where Wrapped: Comparable {
+    var nilFirst: NilFirst<Wrapped> { NilFirst(value: self) }
+}
+
+extension Bool {
+    var sortRank: Int { self ? 1 : 0 }
 }
