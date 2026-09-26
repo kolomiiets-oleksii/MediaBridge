@@ -1,6 +1,11 @@
 import MediaPlayer
 
 extension MusicPlayerProtocol {
+    /// The song playing now, or `nil` when nothing is.
+    public var nowPlayingSong: Song? {
+        nowPlayingItem.map(Song.init)
+    }
+
     /// Replaces the player's queue with `songs`, in order.
     ///
     /// ```swift

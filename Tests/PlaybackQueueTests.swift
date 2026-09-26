@@ -86,3 +86,22 @@ struct PlaybackQueueTests {
         }
     }
 }
+
+@Suite("Now playing song")
+struct NowPlayingSongTests {
+    @Test("When the player has a current item, then nowPlayingSong wraps that same item")
+    func wraps() throws {
+        let player = MockMusicPlayer()
+        let item = StubMediaItem.song("Hello")
+        player.nowPlayingItem = item
+
+        let song = try #require(player.nowPlayingSong)
+
+        #expect(song.mediaItem === item)
+    }
+
+    @Test("When nothing is playing, then nowPlayingSong is nil")
+    func empty() {
+        #expect(MockMusicPlayer().nowPlayingSong == nil)
+    }
+}
