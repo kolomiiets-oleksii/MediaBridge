@@ -1,4 +1,5 @@
 import MediaPlayer
+import SwiftUI
 import Testing
 
 @testable import MediaBridge
@@ -137,6 +138,11 @@ struct NowPlayingTests {
             #expect(player.playbackState == .paused)
             player.stop()
             #expect(player.playbackState == .stopped)
+        }
+
+        @Test("When set on a view, then the preview spelling reads like the other environment values")
+        func environmentSpelling() {
+            _ = Text("Now Playing").musicPlayer(.preview(queue: items, state: .playing))
         }
 
         @Test("When a loader watches it and it skips, then the loader follows")

@@ -123,8 +123,33 @@ Button("Add Songs") { isPicking = true }
 
 ```swift
 let player = MPMusicPlayerController.applicationMusicPlayer
-player.setQueue(with: try await library.fetch(.mostSkipped))
+player.setQueue(with: songs, startingAt: tappedSong)
 player.play()
+
+player.playNext([song])     // after the current song
+player.playLater([song])    // at the end of the queue
+```
+
+`@NowPlaying` follows the player in `\.musicPlayer` (the app's own player by default):
+
+```swift
+struct MiniPlayer: View {
+    @NowPlaying var song
+    @Environment(\.musicPlayer) private var player
+
+    var body: some View {
+        if let song {
+            Text(song.title ?? "")
+            Button($song.isPlaying ? "Pause" : "Play") {
+                $song.isPlaying ? player.pause() : player.play()
+            }
+        }
+    }
+}
+
+#Preview {
+    MiniPlayer().musicPlayer(.preview(queue: previewSongs, state: .playing))
+}
 ```
 
 ## Previews

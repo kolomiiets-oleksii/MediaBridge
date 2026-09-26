@@ -91,13 +91,32 @@ ArtworkImage(song, size: 48, cornerRadius: 4)
 
 ### Playback
 
-Queue songs on any `MPMusicPlayerController`:
+Queue songs on any `MPMusicPlayerController`, or any ``MusicPlayerProtocol``:
 
 ```swift
 let player = MPMusicPlayerController.applicationMusicPlayer
-player.setQueue(with: try await library.fetch(.songs.filter(\.id == songID)))
+player.setQueue(with: songs, startingAt: tappedSong)
 player.play()
+
+player.playNext([song])     // after the current song
+player.playLater([song])    // at the end of the queue
 ```
+
+``NowPlaying`` follows the player in the `musicPlayer` environment value, which defaults to `applicationMusicPlayer`:
+
+```swift
+struct MiniPlayer: View {
+    @NowPlaying var song
+
+    var body: some View {
+        if let song {
+            Label(song.title ?? "", systemImage: $song.isPlaying ? "play.fill" : "pause.fill")
+        }
+    }
+}
+```
+
+In previews, `.musicPlayer(.preview(queue:state:))` supplies a ``PreviewMusicPlayer`` that keeps its queue in memory.
 
 ### Errors
 
@@ -178,6 +197,7 @@ let library = MusicLibrary(service: FixtureService(songs: fixtures))
 
 ### SwiftUI
 - ``MediaQuery``
+- ``NowPlaying``
 - ``ArtworkImage``
 - ``MediaPicker``
 
@@ -203,6 +223,10 @@ let library = MusicLibrary(service: FixtureService(songs: fixtures))
 - ``MusicLibraryProtocol``
 - ``MusicLibraryError``
 - ``PlaylistMetadata``
+
+### Playback
+- ``MusicPlayerProtocol``
+- ``PreviewMusicPlayer``
 
 ### Library Changes
 - ``LibraryChangesProtocol``
