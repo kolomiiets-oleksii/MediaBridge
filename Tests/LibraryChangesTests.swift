@@ -7,6 +7,23 @@ import Testing
 @Suite("Library changes")
 struct LibraryChangesTests {
 
+    @Suite("Given a live change source")
+    struct Laziness {
+        @Test("When it's created, then MediaPlayer's library isn't touched until changes are observed")
+        func lazy() async {
+            let tracker = MockChangeTracker(lastModified: Date())
+            let resolved = ResolveCounter()
+            let source = LiveLibraryChanges(center: NotificationCenter(), library: { resolved.increment(); return tracker }())
+
+            #expect(resolved.count == 0)
+            let task = Task { for await _ in source.changes() {} }
+            await tracker.waitForBegins(1)
+            task.cancel()
+
+            #expect(resolved.count == 1)
+        }
+    }
+
     @Suite("Given the live change source")
     struct Live {
         let center = NotificationCenter()
@@ -98,4 +115,11 @@ final class MockChangeTracker: MediaLibraryChangeTracking, @unchecked Sendable {
 struct MockLibraryChanges: LibraryChangesProtocol {
     let stream: AsyncStream<Date>
     func changes() -> AsyncStream<Date> { stream }
+}
+
+final class ResolveCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+    var count: Int { lock.withLock { value } }
+    func increment() { lock.withLock { value += 1 } }
 }
