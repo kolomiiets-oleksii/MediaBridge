@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-09-26
+
+### Added
+- `library.add(productID:)` adds an Apple Music catalog song, album, or playlist to the user's library and returns the songs it added; `library.add(productID:to:)` appends a catalog song to your app's playlist. Both need Apple Music with Sync Library turned on, and check authorization first.
+- `MusicLibraryServiceProtocol.addItem(productID:)` and `add(productID:to:)`. Services and `MusicLibraryProtocol` conformers written before 0.15 keep compiling and throw `MusicLibraryError.writesUnsupported`.
+- `Song.playbackStoreID`, the Apple Music catalog ID of a library song.
+- Preview libraries resolve product IDs against their songs' `playbackStoreID`.
+
 ## [0.14.0] - 2026-09-25
 
 ### Added

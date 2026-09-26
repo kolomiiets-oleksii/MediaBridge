@@ -47,6 +47,8 @@ public struct Song: Identifiable, Hashable, @unchecked Sendable {
 
     public var albumID: MPMediaEntityPersistentID { reader.number(MPMediaItemPropertyAlbumPersistentID)?.uint64Value ?? 0 }
     public var artistID: MPMediaEntityPersistentID { reader.number(MPMediaItemPropertyArtistPersistentID)?.uint64Value ?? 0 }
+    /// The Apple Music catalog ID, for songs that came from Apple Music.
+    public var playbackStoreID: String? { reader.value(MPMediaItemPropertyPlaybackStoreID) }
 
     public static func == (lhs: Song, rhs: Song) -> Bool { lhs.id == rhs.id }
     public func hash(into hasher: inout Hasher) { hasher.combine(id) }

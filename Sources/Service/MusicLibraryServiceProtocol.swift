@@ -42,6 +42,13 @@ public protocol MusicLibraryServiceProtocol: Sendable {
 
     /// Appends `items` to `playlist`. Only playlists your app created can be changed.
     func add(_ items: [MPMediaItem], to playlist: MPMediaPlaylist) async throws
+
+    /// Adds the Apple Music catalog item with `productID` to the library and returns what was
+    /// added: items for a song, collections for an album or playlist.
+    func addItem(productID: String) async throws -> [MPMediaEntity]
+
+    /// Appends the Apple Music catalog item with `productID` to `playlist`.
+    func add(productID: String, to playlist: MPMediaPlaylist) async throws
 }
 
 extension MusicLibraryServiceProtocol {
@@ -62,6 +69,16 @@ extension MusicLibraryServiceProtocol {
 
     /// Throws ``MusicLibraryError/writesUnsupported``, for services written before 0.14.
     public func add(_ items: [MPMediaItem], to playlist: MPMediaPlaylist) async throws {
+        throw MusicLibraryError.writesUnsupported
+    }
+
+    /// Throws ``MusicLibraryError/writesUnsupported``, for services written before 0.15.
+    public func addItem(productID: String) async throws -> [MPMediaEntity] {
+        throw MusicLibraryError.writesUnsupported
+    }
+
+    /// Throws ``MusicLibraryError/writesUnsupported``, for services written before 0.15.
+    public func add(productID: String, to playlist: MPMediaPlaylist) async throws {
         throw MusicLibraryError.writesUnsupported
     }
 }

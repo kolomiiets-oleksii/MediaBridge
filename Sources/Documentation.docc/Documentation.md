@@ -152,6 +152,14 @@ try await library.add(songs, to: playlist)
 
 MediaPlayer can't remove songs from a playlist, and only playlists your app created can be changed.
 
+With Apple Music, you can also add catalog songs, albums, and playlists by their product ID, to
+the library or to your playlist. Nothing can remove them from the library afterwards.
+
+```swift
+let added = try await library.add(productID: "1440839718")
+try await library.add(productID: "1440839718", to: playlist)
+```
+
 To let people choose songs themselves, present the system picker (iOS only):
 
 ```swift
