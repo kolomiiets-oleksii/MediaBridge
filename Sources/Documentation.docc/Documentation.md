@@ -89,6 +89,12 @@ ArtworkImage(song, size: 48, cornerRadius: 4)
     .placeholder { Image("logo").resizable().padding(8) }
 ```
 
+Leave out the size and it fills the width the layout offers, such as a grid cell, and renders at that size:
+
+```swift
+ArtworkImage(album, cornerRadius: 8)
+```
+
 ### Playback
 
 Queue songs on any `MPMusicPlayerController`, or any ``MusicPlayerProtocol``:

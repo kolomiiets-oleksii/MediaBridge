@@ -63,11 +63,18 @@ extension LibraryQuery where Element == Song {
 @MediaQuery(.mostSkipped) var songs
 ```
 
-`ArtworkImage` decodes artwork off the main thread. Give it your own placeholder and corner radius:
+`ArtworkImage` decodes artwork off the main thread. Give it your own placeholder and corner radius,
+or leave out the size to fill a grid cell:
 
 ```swift
 ArtworkImage(song, size: 48, cornerRadius: 4)
     .placeholder { Image("logo").resizable().padding(8) }
+
+LazyVGrid(columns: [GridItem(), GridItem()]) {
+    ForEach(albums) { album in
+        ArtworkImage(album, cornerRadius: 8)
+    }
+}
 ```
 
 ## Queries
