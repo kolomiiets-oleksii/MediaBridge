@@ -82,7 +82,22 @@ let sections = try await library.sections(.artists)   // A–Z, like the Music a
 
 `==` on a property MediaPlayer can filter and `.contains` run inside MediaPlayer's query; every other condition runs in memory. Sorting reads each key once per element.
 
-Each model keeps its MediaPlayer object, such as `song.mediaItem`, for APIs like `MPMusicPlayerController`. Artwork is rendered on demand and never stored; ``ArtworkImage`` loads it when it appears.
+Each model keeps its MediaPlayer object, such as `song.mediaItem`, for other MediaPlayer APIs. Artwork is rendered on demand and never stored; ``ArtworkImage`` loads it when it appears, with a placeholder you can replace:
+
+```swift
+ArtworkImage(song, size: 48, cornerRadius: 4)
+    .placeholder { Image("logo").resizable().padding(8) }
+```
+
+### Playback
+
+Queue songs on any `MPMusicPlayerController`:
+
+```swift
+let player = MPMusicPlayerController.applicationMusicPlayer
+player.setQueue(with: try await library.fetch(.songs.filter(\.id == songID)))
+player.play()
+```
 
 ### Errors
 
