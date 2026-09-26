@@ -92,13 +92,13 @@ struct PreviewTests {
         func denied() async {
             let library: MusicLibrary = .accessDenied
             #expect(library.authorizationStatus == .denied)
-            await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) { _ = try await library.fetch(Song.query) }
+            await #expect(throws: MusicLibraryError.unauthorized(.denied)) { _ = try await library.fetch(Song.query) }
         }
 
         @Test("When access is restricted, then fetching throws unauthorized(.restricted)")
         func restricted() async {
             let library: MusicLibrary = .accessRestricted
-            await #expect(throws: AuthorizationManagerError.unauthorized(.restricted)) { _ = try await library.fetch(Song.query) }
+            await #expect(throws: MusicLibraryError.unauthorized(.restricted)) { _ = try await library.fetch(Song.query) }
         }
 
         @Test("When access is authorized, then fetching succeeds")
@@ -120,7 +120,7 @@ struct PreviewTests {
         @Test("When the request is refused, then requestAuthorization throws like the live manager")
         func refusedAfterRequest() async {
             let library: MusicLibrary = .accessDeniedAfterRequest
-            await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) {
+            await #expect(throws: MusicLibraryError.unauthorized(.denied)) {
                 try await library.requestAuthorization()
             }
         }

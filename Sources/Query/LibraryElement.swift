@@ -8,10 +8,10 @@ public protocol LibraryElement: Sendable {
     static var baseRequest: MediaQueryRequest { get }
 
     /// Runs `request` against `library` and wraps the results.
-    static func fetch(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws -> [Self]
+    static func fetch(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws(MusicLibraryError) -> [Self]
 
     /// Runs `request` against `library` split into index sections, and wraps the results.
-    static func fetchSections(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws -> [MediaSection<Self>]
+    static func fetchSections(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws(MusicLibraryError) -> [MediaSection<Self>]
 
     /// The MediaPlayer predicate for `keyPath` equal to (or containing) `value`, or `nil` when
     /// MediaPlayer can't filter by that property and the condition must run in memory.
@@ -19,11 +19,11 @@ public protocol LibraryElement: Sendable {
 }
 
 extension LibraryElement where Self: CollectionElement {
-    public static func fetch(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws -> [Self] {
+    public static func fetch(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws(MusicLibraryError) -> [Self] {
         try await library.collections(request).map(Self.init)
     }
 
-    public static func fetchSections(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws -> [MediaSection<Self>] {
+    public static func fetchSections(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws(MusicLibraryError) -> [MediaSection<Self>] {
         try await library.collectionSections(request).map { MediaSection(title: $0.title, elements: $0.elements.map(Self.init)) }
     }
 }

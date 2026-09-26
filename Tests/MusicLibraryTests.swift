@@ -91,12 +91,12 @@ struct MusicLibraryTests {
 
         @Test("When fetching songs, then the service error reaches the caller")
         func songs() async {
-            await #expect(throws: MockMusicLibraryService.MockError.failed) { _ = try await library.fetch(Song.query) }
+            await #expect(throws: MusicLibraryError.underlying(MockMusicLibraryService.MockError.failed)) { _ = try await library.fetch(Song.query) }
         }
 
         @Test("When fetching album sections, then the service error reaches the caller")
         func albums() async {
-            await #expect(throws: MockMusicLibraryService.MockError.failed) { _ = try await library.sections(Album.query) }
+            await #expect(throws: MusicLibraryError.underlying(MockMusicLibraryService.MockError.failed)) { _ = try await library.sections(Album.query) }
         }
     }
 
@@ -109,7 +109,7 @@ struct MusicLibraryTests {
                 auth: .mock(isAuthorized: false, authError: .mockError, authStatus: .denied), service: service)
 
             #expect(library.authorizationStatus == .denied)
-            await #expect(throws: MockAuthorizationManager.MockAuthError.mockError) { _ = try await library.fetch(Song.query) }
+            await #expect(throws: MusicLibraryError.underlying(MockAuthorizationManager.MockAuthError.mockError)) { _ = try await library.fetch(Song.query) }
             #expect(service.requests.isEmpty)
         }
 
@@ -118,7 +118,7 @@ struct MusicLibraryTests {
             let service = MockMusicLibraryService()
             let library = MusicLibrary(auth: .mock(isAuthorized: false, authStatus: .denied), service: service)
 
-            await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) { _ = try await library.fetch(Playlist.query) }
+            await #expect(throws: MusicLibraryError.unauthorized(.denied)) { _ = try await library.fetch(Playlist.query) }
             #expect(service.requests.isEmpty)
         }
 

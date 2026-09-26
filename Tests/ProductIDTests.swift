@@ -77,8 +77,8 @@ struct ProductIDTests {
             let service = MockMusicLibraryService()
             let library = MusicLibrary(auth: .mock(isAuthorized: false, authStatus: .denied), service: service)
 
-            await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) { _ = try await library.add(productID: "1") }
-            await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) {
+            await #expect(throws: MusicLibraryError.unauthorized(.denied)) { _ = try await library.add(productID: "1") }
+            await #expect(throws: MusicLibraryError.unauthorized(.denied)) {
                 try await library.add(productID: "1", to: Playlist(StubPlaylist(name: "X", attributes: [])))
             }
             #expect(service.productIDAdditions.isEmpty)

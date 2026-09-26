@@ -32,19 +32,19 @@ public protocol MusicLibraryProtocol: Sendable {
     /// automatically, so use it directly only to choose when the prompt appears.
     ///
     /// - Returns: `.authorized`; any other outcome throws
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` with the resulting status
+    /// - Throws: ``MusicLibraryError/unauthorized(_:)`` with the resulting status
     ///   when access is denied or restricted
     ///
     /// ## Example
     /// ```swift
     /// do {
     ///     try await library.requestAuthorization()
-    /// } catch AuthorizationManagerError.unauthorized(let status) {
+    /// } catch .unauthorized(let status) {
     ///     // .denied or .restricted: point the user to Settings
     /// }
     /// ```
     @discardableResult
-    func requestAuthorization() async throws -> MPMediaLibraryAuthorizationStatus
+    func requestAuthorization() async throws(MusicLibraryError) -> MPMediaLibraryAuthorizationStatus
 
     /// Yields the library's modification date each time the music library changes.
     ///
@@ -72,34 +72,34 @@ public protocol MusicLibraryProtocol: Sendable {
     ///     MediaQueryRequest(mediaType: .music, filter: .init(.genre("Jazz")), grouping: .title)
     /// )
     /// ```
-    func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem]
+    func items(_ request: MediaQueryRequest) async throws(MusicLibraryError) -> [MPMediaItem]
 
     /// Fetches the collections matching a request, grouped by `request.grouping`.
     ///
     /// The low-level query behind ``fetch(_:)`` for albums, artists, and the other collections.
-    func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection]
+    func collections(_ request: MediaQueryRequest) async throws(MusicLibraryError) -> [MPMediaItemCollection]
 
     /// Fetches the items matching a request, split into index sections like the Music app's
     /// A–Z sidebar.
-    func itemSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItem>]
+    func itemSections(_ request: MediaQueryRequest) async throws(MusicLibraryError) -> [MediaSection<MPMediaItem>]
 
     /// Fetches the collections matching a request, split into index sections.
-    func collectionSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItemCollection>]
+    func collectionSections(_ request: MediaQueryRequest) async throws(MusicLibraryError) -> [MediaSection<MPMediaItemCollection>]
 
     /// Returns the playlist your app created with `id`, or `nil` when it doesn't exist.
     ///
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted
+    /// - Throws: ``MusicLibraryError/unauthorized(_:)`` if access is still not granted
     ///   after the automatic authorization request
-    func playlist(id: UUID) async throws -> Playlist?
+    func playlist(id: UUID) async throws(MusicLibraryError) -> Playlist?
 
     /// Returns the playlist your app created with `id`, creating it from `metadata` the first time.
     ///
     /// Generate the UUID once and store it: the same UUID always returns the same playlist, and
     /// `metadata` is ignored once the playlist exists. The playlist appears in the Music app.
     ///
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted
+    /// - Throws: ``MusicLibraryError/unauthorized(_:)`` if access is still not granted
     ///   after the automatic authorization request, ``MusicLibraryError/playlistUnavailable(_:)``
-    ///   if MediaPlayer creates nothing, or MediaPlayer's own error
+    ///   if MediaPlayer creates nothing, or ``MusicLibraryError/underlying(_:)`` with MediaPlayer's error
     ///
     /// ## Example
     /// ```swift
@@ -109,16 +109,16 @@ public protocol MusicLibraryProtocol: Sendable {
     /// )
     /// try await library.add(songs, to: playlist)
     /// ```
-    func playlist(id: UUID, orCreate metadata: PlaylistMetadata) async throws -> Playlist
+    func playlist(id: UUID, orCreate metadata: PlaylistMetadata) async throws(MusicLibraryError) -> Playlist
 
     /// Appends `songs` to `playlist`, keeping their order. Does nothing when `songs` is empty.
     ///
     /// Only playlists your app created with ``playlist(id:orCreate:)`` can be changed; MediaPlayer
     /// throws for any other. Songs can't be removed: MediaPlayer has no API for it.
     ///
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted
-    ///   after the automatic authorization request, or MediaPlayer's own error
-    func add(_ songs: [Song], to playlist: Playlist) async throws
+    /// - Throws: ``MusicLibraryError/unauthorized(_:)`` if access is still not granted
+    ///   after the automatic authorization request, or ``MusicLibraryError/underlying(_:)`` with MediaPlayer's error
+    func add(_ songs: [Song], to playlist: Playlist) async throws(MusicLibraryError)
 
     /// Adds an Apple Music catalog song, album, or playlist to the user's library and returns the
     /// songs it added, in album or playlist order.
@@ -128,16 +128,16 @@ public protocol MusicLibraryProtocol: Sendable {
     /// library afterwards, so add only what the user asked for.
     ///
     /// - Parameter productID: The Apple Music catalog ID, such as a song's ``Song/playbackStoreID``
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted
-    ///   after the automatic authorization request, or MediaPlayer's own error
+    /// - Throws: ``MusicLibraryError/unauthorized(_:)`` if access is still not granted
+    ///   after the automatic authorization request, or ``MusicLibraryError/underlying(_:)`` with MediaPlayer's error
     @discardableResult
-    func add(productID: String) async throws -> [Song]
+    func add(productID: String) async throws(MusicLibraryError) -> [Song]
 
     /// Appends an Apple Music catalog song to a playlist your app created.
     ///
     /// Needs the same Apple Music capability as ``add(productID:)``.
     ///
-    /// - Throws: ``AuthorizationManagerError/unauthorized(_:)`` if access is still not granted
-    ///   after the automatic authorization request, or MediaPlayer's own error
-    func add(productID: String, to playlist: Playlist) async throws
+    /// - Throws: ``MusicLibraryError/unauthorized(_:)`` if access is still not granted
+    ///   after the automatic authorization request, or ``MusicLibraryError/underlying(_:)`` with MediaPlayer's error
+    func add(productID: String, to playlist: Playlist) async throws(MusicLibraryError)
 }

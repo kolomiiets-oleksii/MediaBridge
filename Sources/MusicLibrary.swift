@@ -105,57 +105,57 @@ public final class MusicLibrary: MusicLibraryProtocol {
     // MARK: - Authorization
 
     @discardableResult
-    public func requestAuthorization() async throws -> MPMediaLibraryAuthorizationStatus {
-        try await auth.authorize()
+    public func requestAuthorization() async throws(MusicLibraryError) -> MPMediaLibraryAuthorizationStatus {
+        try await attempt { try await auth.authorize() }
     }
 
     // MARK: - Queries
 
-    public func items(_ request: MediaQueryRequest) async throws -> [MPMediaItem] {
+    public func items(_ request: MediaQueryRequest) async throws(MusicLibraryError) -> [MPMediaItem] {
         try await checkIfAuthorized()
-        return try await service.items(request)
+        return try await attempt { try await service.items(request) }
     }
 
-    public func collections(_ request: MediaQueryRequest) async throws -> [MPMediaItemCollection] {
+    public func collections(_ request: MediaQueryRequest) async throws(MusicLibraryError) -> [MPMediaItemCollection] {
         try await checkIfAuthorized()
-        return try await service.collections(request)
+        return try await attempt { try await service.collections(request) }
     }
 
-    public func itemSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItem>] {
+    public func itemSections(_ request: MediaQueryRequest) async throws(MusicLibraryError) -> [MediaSection<MPMediaItem>] {
         try await checkIfAuthorized()
-        return try await service.itemSections(request)
+        return try await attempt { try await service.itemSections(request) }
     }
 
-    public func collectionSections(_ request: MediaQueryRequest) async throws -> [MediaSection<MPMediaItemCollection>] {
+    public func collectionSections(_ request: MediaQueryRequest) async throws(MusicLibraryError) -> [MediaSection<MPMediaItemCollection>] {
         try await checkIfAuthorized()
-        return try await service.collectionSections(request)
+        return try await attempt { try await service.collectionSections(request) }
     }
 
     // MARK: - Playlist Writes
 
-    public func playlist(id: UUID) async throws -> Playlist? {
+    public func playlist(id: UUID) async throws(MusicLibraryError) -> Playlist? {
         try await checkIfAuthorized()
-        return try await service.playlist(id: id, creating: nil).map(Playlist.init)
+        return try await attempt { try await service.playlist(id: id, creating: nil) }.map(Playlist.init)
     }
 
-    public func playlist(id: UUID, orCreate metadata: PlaylistMetadata) async throws -> Playlist {
+    public func playlist(id: UUID, orCreate metadata: PlaylistMetadata) async throws(MusicLibraryError) -> Playlist {
         try await checkIfAuthorized()
-        guard let playlist = try await service.playlist(id: id, creating: metadata) else {
+        guard let playlist = try await attempt({ try await service.playlist(id: id, creating: metadata) }) else {
             throw MusicLibraryError.playlistUnavailable(id)
         }
         return Playlist(playlist)
     }
 
-    public func add(_ songs: [Song], to playlist: Playlist) async throws {
+    public func add(_ songs: [Song], to playlist: Playlist) async throws(MusicLibraryError) {
         try await checkIfAuthorized()
         guard !songs.isEmpty else { return }
-        try await service.add(songs.map(\.mediaItem), to: playlist.mediaPlaylist)
+        try await attempt { try await service.add(songs.map(\.mediaItem), to: playlist.mediaPlaylist) }
     }
 
     @discardableResult
-    public func add(productID: String) async throws -> [Song] {
+    public func add(productID: String) async throws(MusicLibraryError) -> [Song] {
         try await checkIfAuthorized()
-        return try await service.addItem(productID: productID).flatMap { entity -> [Song] in
+        return try await attempt { try await service.addItem(productID: productID) }.flatMap { entity -> [Song] in
             switch entity {
             case let item as MPMediaItem: [Song(item)]
             case let collection as MPMediaItemCollection: collection.items.map(Song.init)
@@ -164,12 +164,20 @@ public final class MusicLibrary: MusicLibraryProtocol {
         }
     }
 
-    public func add(productID: String, to playlist: Playlist) async throws {
+    public func add(productID: String, to playlist: Playlist) async throws(MusicLibraryError) {
         try await checkIfAuthorized()
-        try await service.add(productID: productID, to: playlist.mediaPlaylist)
+        try await attempt { try await service.add(productID: productID, to: playlist.mediaPlaylist) }
     }
 
-    private func checkIfAuthorized() async throws {
+    private func attempt<Result>(_ operation: () async throws -> Result) async throws(MusicLibraryError) -> Result {
+        do {
+            return try await operation()
+        } catch {
+            throw MusicLibraryError.wrapping(error)
+        }
+    }
+
+    private func checkIfAuthorized() async throws(MusicLibraryError) {
         let status = authorizationStatus
 
         guard case .authorized = status else {
@@ -177,7 +185,7 @@ public final class MusicLibrary: MusicLibraryProtocol {
             let statusAfterRequest = try await requestAuthorization()
 
             guard case .authorized = statusAfterRequest else {
-                throw AuthorizationManagerError.unauthorized(statusAfterRequest)
+                throw MusicLibraryError.unauthorized(statusAfterRequest)
             }
 
             return

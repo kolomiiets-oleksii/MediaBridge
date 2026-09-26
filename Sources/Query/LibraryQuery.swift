@@ -156,7 +156,7 @@ public struct LibraryQuery<Element: LibraryElement>: @unchecked Sendable {
 
 extension MusicLibraryProtocol {
     /// Runs a ``LibraryQuery``, requesting authorization first if needed.
-    public func fetch<Element: LibraryElement>(_ query: LibraryQuery<Element>) async throws -> [Element] {
+    public func fetch<Element: LibraryElement>(_ query: LibraryQuery<Element>) async throws(MusicLibraryError) -> [Element] {
         query.refine(try await Element.fetch(query.request, from: self))
     }
 
@@ -164,7 +164,7 @@ extension MusicLibraryProtocol {
     ///
     /// The query's filters and ordering apply inside each section, and sections the filters empty
     /// are dropped. `limit` is ignored.
-    public func sections<Element: LibraryElement>(_ query: LibraryQuery<Element>) async throws -> [MediaSection<Element>] {
+    public func sections<Element: LibraryElement>(_ query: LibraryQuery<Element>) async throws(MusicLibraryError) -> [MediaSection<Element>] {
         try await Element.fetchSections(query.request, from: self).compactMap { section in
             let elements = query.refine(section.elements, applyingLimit: false)
             return elements.isEmpty ? nil : MediaSection(title: section.title, elements: elements)

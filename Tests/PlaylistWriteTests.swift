@@ -122,10 +122,10 @@ struct PlaylistWriteTests {
             let service = MockMusicLibraryService(playlist: StubPlaylist(name: "X", attributes: []))
             let library = MusicLibrary(auth: .mock(isAuthorized: false, authStatus: .denied), service: service)
 
-            await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) {
+            await #expect(throws: MusicLibraryError.unauthorized(.denied)) {
                 _ = try await library.playlist(id: UUID(), orCreate: PlaylistWriteTests.metadata)
             }
-            await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) {
+            await #expect(throws: MusicLibraryError.unauthorized(.denied)) {
                 try await library.add([Song(StubMediaItem.song("A"))], to: Playlist(StubPlaylist(name: "X", attributes: [])))
             }
             #expect(service.playlistLookups.isEmpty)

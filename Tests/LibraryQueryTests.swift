@@ -135,7 +135,7 @@ struct LibraryQueryTests {
             let service = MockMusicLibraryService()
             let library = MusicLibrary(auth: .mock(isAuthorized: false, authStatus: .denied), service: service)
 
-            await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) {
+            await #expect(throws: MusicLibraryError.unauthorized(.denied)) {
                 _ = try await library.fetch(Song.query)
             }
             #expect(service.requests.isEmpty)

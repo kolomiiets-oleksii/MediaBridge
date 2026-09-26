@@ -59,11 +59,11 @@ public struct Song: Identifiable, Hashable, @unchecked Sendable {
 extension Song: LibraryElement {
     public static var baseRequest: MediaQueryRequest { MediaQueryRequest(mediaType: .music, grouping: .title) }
 
-    public static func fetch(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws -> [Song] {
+    public static func fetch(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws(MusicLibraryError) -> [Song] {
         try await library.items(request).map(Song.init)
     }
 
-    public static func fetchSections(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws -> [MediaSection<Song>] {
+    public static func fetchSections(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws(MusicLibraryError) -> [MediaSection<Song>] {
         try await library.itemSections(request).map { MediaSection(title: $0.title, elements: $0.elements.map(Song.init)) }
     }
 

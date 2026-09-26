@@ -39,7 +39,7 @@ public final class AuthorizationManager<T: MediaLibraryProtocol>: AuthorizationM
         let status = await T.requestAuthorization()
         
         guard status == .authorized else {
-            throw AuthorizationManagerError.unauthorized(status)
+            throw MusicLibraryError.unauthorized(status)
         }
         
         log.info("Access to music library is authorized")

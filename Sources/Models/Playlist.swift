@@ -36,11 +36,11 @@ public struct Playlist: Identifiable, Hashable, @unchecked Sendable {
 extension Playlist: LibraryElement {
     public static var baseRequest: MediaQueryRequest { MediaQueryRequest(grouping: .playlist) }
 
-    public static func fetch(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws -> [Playlist] {
+    public static func fetch(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws(MusicLibraryError) -> [Playlist] {
         try await library.collections(request).compactMap { ($0 as? MPMediaPlaylist).map(Playlist.init) }
     }
 
-    public static func fetchSections(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws -> [MediaSection<Playlist>] {
+    public static func fetchSections(_ request: MediaQueryRequest, from library: some MusicLibraryProtocol) async throws(MusicLibraryError) -> [MediaSection<Playlist>] {
         try await library.collectionSections(request).compactMap { section in
             let playlists = section.elements.compactMap { ($0 as? MPMediaPlaylist).map(Playlist.init) }
             return playlists.isEmpty ? nil : MediaSection(title: section.title, elements: playlists)

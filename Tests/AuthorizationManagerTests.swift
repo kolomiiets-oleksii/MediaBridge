@@ -20,21 +20,21 @@ struct AuthorizationManagerTests {
     }
 
     @Test func authorize_whenDenied_throwsUnauthorizedError() async throws {
-        await #expect(throws: AuthorizationManagerError.unauthorized(.denied)) {
+        await #expect(throws: MusicLibraryError.unauthorized(.denied)) {
             let manager: any AuthorizationManagerProtocol = AuthorizationManager<MockMediaLibraryDenied_Denied>()
             try await manager.authorize()
         }
     }
 
     @Test func authorize_whenRestricted_throwsUnauthorizedError() async throws {
-        await #expect(throws: AuthorizationManagerError.unauthorized(.restricted)) {
+        await #expect(throws: MusicLibraryError.unauthorized(.restricted)) {
             let manager: any AuthorizationManagerProtocol = AuthorizationManager<MockMediaLibraryRestricted>()
             try await manager.authorize()
         }
     }
 
     @Test func authorize_whenNotDetermined_throwsUnauthorizedError() async throws {
-        await #expect(throws: AuthorizationManagerError.unauthorized(.notDetermined)) {
+        await #expect(throws: MusicLibraryError.unauthorized(.notDetermined)) {
             let manager: any AuthorizationManagerProtocol = AuthorizationManager<MockMediaLibraryNotDetermined>()
             try await manager.authorize()
         }
