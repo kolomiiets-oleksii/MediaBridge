@@ -26,4 +26,30 @@ struct PlaybackQueueTests {
             #expect(items.allSatisfy { $0.reads.isEmpty })
         }
     }
+
+    @Suite("Given a player")
+    struct Queueing {
+        let player = MockMusicPlayer()
+        let items = [StubMediaItem.song("Help!"), StubMediaItem.song("Hello"), StubMediaItem.song("Angie")]
+
+        @Test("When songs are queued, then the player gets them in order, starting at the first")
+        func queues() throws {
+            player.setQueue(with: items.map(Song.init))
+
+            let queue = try #require(player.queued.first)
+            #expect(queue.songIdentities == items.map(ObjectIdentifier.init))
+            #expect(queue.startIdentity == nil)
+        }
+
+        @Test("When songs are queued starting at one of them, then playback starts at that song")
+        func startsAt() throws {
+            let songs = items.map(Song.init)
+
+            player.setQueue(with: songs, startingAt: songs[1])
+
+            let queue = try #require(player.queued.first)
+            #expect(queue.songIdentities == items.map(ObjectIdentifier.init))
+            #expect(queue.startIdentity == ObjectIdentifier(items[1]))
+        }
+    }
 }
