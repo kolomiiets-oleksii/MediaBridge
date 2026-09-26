@@ -26,6 +26,24 @@ extension MusicPlayerProtocol {
     public func setQueue(with songs: [Song], startingAt start: Song) {
         setQueue(with: MPMusicPlayerMediaItemQueueDescriptor(songs: songs, startingAt: start))
     }
+
+    /// Inserts `songs` after the current song, like Play Next in the Music app.
+    ///
+    /// `systemMusicPlayer` and `applicationQueuePlayer` support this; `applicationMusicPlayer`
+    /// may ignore it.
+    public func playNext(_ songs: [Song]) {
+        guard !songs.isEmpty else { return }
+        prepend(MPMusicPlayerMediaItemQueueDescriptor(songs: songs))
+    }
+
+    /// Adds `songs` to the end of the queue, like Play Last in the Music app.
+    ///
+    /// `systemMusicPlayer` and `applicationQueuePlayer` support this; `applicationMusicPlayer`
+    /// may ignore it.
+    public func playLater(_ songs: [Song]) {
+        guard !songs.isEmpty else { return }
+        append(MPMusicPlayerMediaItemQueueDescriptor(songs: songs))
+    }
 }
 
 extension MPMusicPlayerMediaItemQueueDescriptor {

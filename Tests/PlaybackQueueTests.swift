@@ -52,4 +52,37 @@ struct PlaybackQueueTests {
             #expect(queue.startIdentity == ObjectIdentifier(items[1]))
         }
     }
+
+    @Suite("Given a player with a queue")
+    struct UpNext {
+        let player = MockMusicPlayer()
+        let items = [StubMediaItem.song("Help!"), StubMediaItem.song("Hello")]
+
+        @Test("When songs play next, then they're inserted after the current song")
+        func playNext() throws {
+            player.playNext(items.map(Song.init))
+
+            let inserted = try #require(player.prepended.first)
+            #expect(inserted.songIdentities == items.map(ObjectIdentifier.init))
+            #expect(player.appended.isEmpty)
+        }
+
+        @Test("When songs play later, then they're added to the end of the queue")
+        func playLater() throws {
+            player.playLater(items.map(Song.init))
+
+            let added = try #require(player.appended.first)
+            #expect(added.songIdentities == items.map(ObjectIdentifier.init))
+            #expect(player.prepended.isEmpty)
+        }
+
+        @Test("When there are no songs, then the queue isn't touched")
+        func empty() {
+            player.playNext([])
+            player.playLater([])
+
+            #expect(player.prepended.isEmpty)
+            #expect(player.appended.isEmpty)
+        }
+    }
 }
