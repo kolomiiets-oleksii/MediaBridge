@@ -4,14 +4,14 @@ import MediaPlayer
 ///
 /// `equals` and `contains` run inside MediaPlayer's query when the property supports it; every
 /// other condition, and every condition on a property MediaPlayer can't filter, runs in memory.
-public struct LibraryCondition<Value>: @unchecked Sendable {
-    let pushdown: (value: Any, comparison: MPMediaPredicateComparison)?
-    let test: (Value) -> Bool
+public struct LibraryCondition<Value: Sendable>: Sendable {
+    let pushdown: (value: any Sendable, comparison: MPMediaPredicateComparison)?
+    let test: @Sendable (Value) -> Bool
 }
 
 extension LibraryCondition where Value: Equatable {
     public static func equals(_ expected: Value) -> Self {
-        Self(pushdown: unwrapped(expected).map { ($0, .equalTo) }, test: { $0 == expected })
+        Self(pushdown: (expected, .equalTo), test: { $0 == expected })
     }
 
     public static func notEquals(_ unexpected: Value) -> Self {
@@ -40,14 +40,29 @@ extension LibraryCondition where Value: Comparable {
     public static func atMost(_ bound: Value) -> Self { Self(pushdown: nil, test: { $0 <= bound }) }
 }
 
-private protocol OptionalValue {
-    var wrappedAny: Any? { get }
-}
+extension LibraryCondition {
+    /// Matches when the value is present and equal to `expected`, or missing when `expected` is `nil`.
+    public static func equals<Wrapped: Equatable & Sendable>(_ expected: Wrapped?) -> Self where Value == Wrapped? {
+        Self(pushdown: expected.map { ($0, .equalTo) }, test: { $0 == expected })
+    }
 
-extension Optional: OptionalValue {
-    fileprivate var wrappedAny: Any? { map { $0 } }
-}
+    /// Matches present values greater than `bound`; missing values never match.
+    public static func greaterThan<Wrapped: Comparable & Sendable>(_ bound: Wrapped) -> Self where Value == Wrapped? {
+        Self(pushdown: nil, test: { $0.map { $0 > bound } ?? false })
+    }
 
-private func unwrapped(_ value: Any) -> Any? {
-    (value as? OptionalValue).map(\.wrappedAny) ?? value
+    /// Matches present values less than `bound`; missing values never match.
+    public static func lessThan<Wrapped: Comparable & Sendable>(_ bound: Wrapped) -> Self where Value == Wrapped? {
+        Self(pushdown: nil, test: { $0.map { $0 < bound } ?? false })
+    }
+
+    /// Matches present values of at least `bound`; missing values never match.
+    public static func atLeast<Wrapped: Comparable & Sendable>(_ bound: Wrapped) -> Self where Value == Wrapped? {
+        Self(pushdown: nil, test: { $0.map { $0 >= bound } ?? false })
+    }
+
+    /// Matches present values of at most `bound`; missing values never match.
+    public static func atMost<Wrapped: Comparable & Sendable>(_ bound: Wrapped) -> Self where Value == Wrapped? {
+        Self(pushdown: nil, test: { $0.map { $0 <= bound } ?? false })
+    }
 }

@@ -18,14 +18,14 @@ import MediaPlayer
 ///
 /// Filters MediaPlayer supports run inside its query; the rest run in memory. Sorting reads each
 /// sort key once per element, so it stays linear in property reads on large libraries.
-public struct LibraryQuery<Element: LibraryElement>: @unchecked Sendable {
+public struct LibraryQuery<Element: LibraryElement>: Sendable {
     struct Clause {
         let filter: MediaQueryRequest.Filter?
-        let test: (Element) -> Bool
+        let test: @Sendable (Element) -> Bool
     }
 
     struct Ordering {
-        let keys: ([Element]) -> (Int, Int) -> ComparisonResult
+        let keys: @Sendable ([Element]) -> (Int, Int) -> ComparisonResult
     }
 
     private(set) var clauses: [Clause] = []
@@ -40,7 +40,7 @@ public struct LibraryQuery<Element: LibraryElement>: @unchecked Sendable {
     public init() {}
 
     /// Keeps only elements whose `keyPath` value satisfies `condition`.
-    public func filter<Value>(_ keyPath: KeyPath<Element, Value>, _ condition: LibraryCondition<Value>) -> Self {
+    public func filter<Value>(_ keyPath: KeyPath<Element, Value> & Sendable, _ condition: LibraryCondition<Value>) -> Self {
         var copy = self
         let pushed = condition.pushdown.flatMap { pushdown in
             Element.predicate(for: keyPath, value: pushdown.value).map { MediaQueryRequest.Filter($0, pushdown.comparison) }
@@ -50,47 +50,47 @@ public struct LibraryQuery<Element: LibraryElement>: @unchecked Sendable {
     }
 
     /// Orders results by `keyPath`, replacing any previous ordering.
-    public func sorted<Value: Comparable>(by keyPath: KeyPath<Element, Value>, _ order: SortOrder = .forward) -> Self {
+    public func sorted<Value: Comparable>(by keyPath: KeyPath<Element, Value> & Sendable, _ order: SortOrder = .forward) -> Self {
         var copy = self
-        copy.orderings = [Self.ordering(keyPath, order)]
+        copy.orderings = [Self.ordering({ $0[keyPath: keyPath] }, order)]
         return copy
     }
 
     /// Breaks ties in the current ordering by `keyPath`.
-    public func then<Value: Comparable>(by keyPath: KeyPath<Element, Value>, _ order: SortOrder = .forward) -> Self {
+    public func then<Value: Comparable>(by keyPath: KeyPath<Element, Value> & Sendable, _ order: SortOrder = .forward) -> Self {
         var copy = self
-        copy.orderings.append(Self.ordering(keyPath, order))
+        copy.orderings.append(Self.ordering({ $0[keyPath: keyPath] }, order))
         return copy
     }
 
     /// Orders results by an optional `keyPath`, replacing any previous ordering. Missing values
     /// sort first in `.forward` order.
-    public func sorted<Value: Comparable>(by keyPath: KeyPath<Element, Value?>, _ order: SortOrder = .forward) -> Self {
+    public func sorted<Value: Comparable>(by keyPath: KeyPath<Element, Value?> & Sendable, _ order: SortOrder = .forward) -> Self {
         var copy = self
-        copy.orderings = [Self.ordering(keyPath.appending(path: \.nilFirst), order)]
+        copy.orderings = [Self.ordering({ $0[keyPath: keyPath].nilFirst }, order)]
         return copy
     }
 
     /// Breaks ties in the current ordering by an optional `keyPath`. Missing values sort first in
     /// `.forward` order.
-    public func then<Value: Comparable>(by keyPath: KeyPath<Element, Value?>, _ order: SortOrder = .forward) -> Self {
+    public func then<Value: Comparable>(by keyPath: KeyPath<Element, Value?> & Sendable, _ order: SortOrder = .forward) -> Self {
         var copy = self
-        copy.orderings.append(Self.ordering(keyPath.appending(path: \.nilFirst), order))
+        copy.orderings.append(Self.ordering({ $0[keyPath: keyPath].nilFirst }, order))
         return copy
     }
 
     /// Orders results by a flag, replacing any previous ordering. `false` sorts first in
     /// `.forward` order.
-    public func sorted(by keyPath: KeyPath<Element, Bool>, _ order: SortOrder = .forward) -> Self {
+    public func sorted(by keyPath: KeyPath<Element, Bool> & Sendable, _ order: SortOrder = .forward) -> Self {
         var copy = self
-        copy.orderings = [Self.ordering(keyPath.appending(path: \.sortRank), order)]
+        copy.orderings = [Self.ordering({ $0[keyPath: keyPath].sortRank }, order)]
         return copy
     }
 
     /// Breaks ties in the current ordering by a flag. `false` sorts first in `.forward` order.
-    public func then(by keyPath: KeyPath<Element, Bool>, _ order: SortOrder = .forward) -> Self {
+    public func then(by keyPath: KeyPath<Element, Bool> & Sendable, _ order: SortOrder = .forward) -> Self {
         var copy = self
-        copy.orderings.append(Self.ordering(keyPath.appending(path: \.sortRank), order))
+        copy.orderings.append(Self.ordering({ $0[keyPath: keyPath].sortRank }, order))
         return copy
     }
 
@@ -141,9 +141,9 @@ public struct LibraryQuery<Element: LibraryElement>: @unchecked Sendable {
         return elements
     }
 
-    private static func ordering<Value: Comparable>(_ keyPath: KeyPath<Element, Value>, _ order: SortOrder) -> Ordering {
+    private static func ordering<Value: Comparable>(_ key: @escaping @Sendable (Element) -> Value, _ order: SortOrder) -> Ordering {
         Ordering { elements in
-            let keys = elements.map { $0[keyPath: keyPath] }
+            let keys = elements.map(key)
             return { lhs, rhs in
                 let (a, b) = order == .forward ? (keys[lhs], keys[rhs]) : (keys[rhs], keys[lhs])
                 if a < b { return .orderedAscending }
