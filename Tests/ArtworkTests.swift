@@ -1,4 +1,5 @@
 import MediaPlayer
+import SwiftUI
 import Testing
 import UIKit
 
@@ -60,6 +61,30 @@ struct ArtworkTests {
 
             #expect(songViews.count + albumViews.count == 2_000)
             #expect(items.allSatisfy { $0.reads.isEmpty })
+        }
+
+        @Test("When no corner radius is given, then it is an eighth of the size")
+        func defaultCornerRadius() {
+            let view = ArtworkImage(Song(StubMediaItem([:])), size: 48)
+            #expect(view.cornerRadius == 6)
+        }
+
+        @Test("When a corner radius is given, then the artwork uses it")
+        func customCornerRadius() {
+            let view = ArtworkImage(Song(StubMediaItem([:])), size: 48, cornerRadius: 4)
+            #expect(view.cornerRadius == 4)
+        }
+
+        @Test("When a placeholder is given, then it replaces the default one and keeps the size and corner radius")
+        func customPlaceholder() throws {
+            let item = StubMediaItem([MPMediaItemPropertyTitle: "Song"])
+
+            let view = ArtworkImage(Song(item), size: 48, cornerRadius: 4).placeholder { Text("No artwork") }
+
+            let artwork = try #require(view as Any as? ArtworkView<Text>)
+            #expect(artwork.size == 48)
+            #expect(artwork.cornerRadius == 4)
+            #expect(item.reads.isEmpty)
         }
     }
 
