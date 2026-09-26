@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-26
+
+### Added
+- `MPMusicPlayerController.setQueue(with:)` takes `[Song]`, so fetched songs play in the order you fetched them.
+- `ArtworkImage` takes a `cornerRadius:` (default: an eighth of the size) and a `.placeholder { … }` shown while the artwork loads and when there is none.
+
 ## [1.0.0] - 2026-09-26
 
 MediaBridge 1.0 is typed-only: every library read goes through `LibraryQuery` and returns MediaBridge models, and every call throws one `MusicLibraryError`. See the migration table in the README.

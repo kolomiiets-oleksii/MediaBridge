@@ -63,6 +63,13 @@ extension LibraryQuery where Element == Song {
 @MediaQuery(.mostSkipped) var songs
 ```
 
+`ArtworkImage` decodes artwork off the main thread. Give it your own placeholder and corner radius:
+
+```swift
+ArtworkImage(song, size: 48, cornerRadius: 4)
+    .placeholder { Image("logo").resizable().padding(8) }
+```
+
 ## Queries
 
 Start from `.songs`, `.albums`, `.artists`, `.genres`, `.composers`, `.playlists`, `.podcasts`,
@@ -110,6 +117,14 @@ Button("Add Songs") { isPicking = true }
     .mediaPicker(isPresented: $isPicking) { songs in
         Task { try await library.add(songs, to: playlist) }
     }
+```
+
+## Playback
+
+```swift
+let player = MPMusicPlayerController.applicationMusicPlayer
+player.setQueue(with: try await library.fetch(.mostSkipped))
+player.play()
 ```
 
 ## Previews
