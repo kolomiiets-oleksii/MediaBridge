@@ -50,6 +50,30 @@ public struct Song: Identifiable, Hashable, @unchecked Sendable {
     /// The Apple Music catalog ID, for songs that came from Apple Music.
     public var playbackStoreID: String? { reader.value(MPMediaItemPropertyPlaybackStoreID) }
 
+    /// Whether this is music, a podcast episode, an audiobook, or another kind of media.
+    public var mediaType: MPMediaType { MPMediaType(rawValue: reader.number(MPMediaItemPropertyMediaType)?.uintValue ?? 0) }
+
+    /// The song's place on its album, or 0 when unknown.
+    public var trackNumber: Int { reader.number(MPMediaItemPropertyAlbumTrackNumber)?.intValue ?? 0 }
+    public var trackCount: Int { reader.number(MPMediaItemPropertyAlbumTrackCount)?.intValue ?? 0 }
+    public var discNumber: Int { reader.number(MPMediaItemPropertyDiscNumber)?.intValue ?? 0 }
+    public var discCount: Int { reader.number(MPMediaItemPropertyDiscCount)?.intValue ?? 0 }
+
+    public var lyrics: String? { reader.value(MPMediaItemPropertyLyrics) }
+    public var comments: String? { reader.value(MPMediaItemPropertyComments) }
+    public var beatsPerMinute: Int { reader.number(MPMediaItemPropertyBeatsPerMinute)?.intValue ?? 0 }
+
+    /// Where playback stopped last time, in seconds, for items that resume such as podcast
+    /// episodes and audiobooks. 0 when there is no bookmark.
+    public var bookmarkTime: TimeInterval { reader.number(MPMediaItemPropertyBookmarkTime)?.doubleValue ?? 0 }
+
+    /// The podcast an episode belongs to.
+    public var podcastTitle: String? { reader.value(MPMediaItemPropertyPodcastTitle) }
+    public var podcastID: MPMediaEntityPersistentID { reader.number(MPMediaItemPropertyPodcastPersistentID)?.uint64Value ?? 0 }
+
+    /// The file behind the item, or `nil` for items that aren't downloaded or are protected.
+    public var assetURL: URL? { reader.value(MPMediaItemPropertyAssetURL) }
+
     public static func == (lhs: Song, rhs: Song) -> Bool { lhs.id == rhs.id }
     public func hash(into hasher: inout Hasher) { hasher.combine(id) }
 
@@ -82,6 +106,9 @@ extension Song: LibraryElement {
         case (\Song.id, let value as UInt64): .persistentID(value)
         case (\Song.albumID, let value as UInt64): .albumID(value)
         case (\Song.artistID, let value as UInt64): .artistID(value)
+        case (\Song.podcastTitle, let value as String): .podcastTitle(value)
+        case (\Song.podcastID, let value as UInt64): .podcastID(value)
+        case (\Song.mediaType, let value as MPMediaType): .mediaType(value)
         default: nil
         }
     }

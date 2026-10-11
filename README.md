@@ -129,6 +129,16 @@ try await history.record(from: library)                    // at launch and on f
 let plays = try await history.plays(since: monthStart)      // persistent ID → plays since
 ```
 
+Podcast episodes and audiobooks know where you stopped:
+
+```swift
+@MediaQuery(.episodes.sorted(by: \.releaseDate, .reverse)) var episodes
+// episode.bookmarkTime, episode.progress, episode.isInProgress
+```
+
+MediaPlayer returns the podcasts and audiobooks it holds in the music library; content only the
+Podcasts and Books apps keep may not appear.
+
 Every call throws one typed error:
 
 ```swift
