@@ -29,7 +29,7 @@ import MediaPlayer
         /// ```swift
         /// #Preview {
         ///     ContentView()
-        ///         .environment(\.library, .preview(songs: previewSongs))
+        ///         .musicLibrary(.preview(songs: previewSongs))
         /// }
         /// ```
         ///

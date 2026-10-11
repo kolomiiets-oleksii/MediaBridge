@@ -11,6 +11,13 @@ struct ArtworkTests {
         var requested: [CGSize] = []
     }
 
+    final class ThreadRecorder: @unchecked Sendable {
+        private let lock = NSLock()
+        private var recorded: [Bool] = []
+        var values: [Bool] { lock.withLock { recorded } }
+        func record(_ value: Bool) { lock.withLock { recorded.append(value) } }
+    }
+
     static func item(recording recorder: SizeRecorder) -> StubMediaItem {
         let artwork = MPMediaItemArtwork(boundsSize: CGSize(width: 600, height: 600)) { size in
             recorder.requested.append(size)
@@ -148,12 +155,79 @@ struct ArtworkTests {
 
         @Test("When the rendered size or the item changes, then it's a new request")
         func requestIdentity() {
-            let first = StubMediaItem([:])
-            let second = StubMediaItem([:])
-            let id = ObjectIdentifier(first)
+            let id = ArtworkKey(kind: .song, id: 1)
             #expect(ArtworkRequest(id: id, side: 192) != ArtworkRequest(id: id, side: 256))
-            #expect(ArtworkRequest(id: id, side: 192) != ArtworkRequest(id: ObjectIdentifier(second), side: 192))
+            #expect(ArtworkRequest(id: id, side: 192) != ArtworkRequest(id: ArtworkKey(kind: .song, id: 2), side: 192))
+            #expect(ArtworkRequest(id: id, side: 192) != ArtworkRequest(id: ArtworkKey(kind: .album, id: 1), side: 192))
             #expect(ArtworkRequest(id: id, side: 192) == ArtworkRequest(id: id, side: 192))
+        }
+
+        @Test("When a refetch returns new objects for the same songs, then the artwork request is unchanged")
+        func requestSurvivesRefetch() throws {
+            let before = StubMediaItem([MPMediaItemPropertyPersistentID: NSNumber(value: 42)])
+            let after = StubMediaItem([MPMediaItemPropertyPersistentID: NSNumber(value: 42)])
+            let beforeView = try #require(ArtworkImage(Song(before), size: 44).placeholder { Text("") } as Any as? ArtworkView<Text>)
+            let afterView = try #require(ArtworkImage(Song(after), size: 44).placeholder { Text("") } as Any as? ArtworkView<Text>)
+
+            #expect(beforeView.key() == afterView.key())
+            #expect(beforeView.key() == ArtworkKey(kind: .song, id: 42))
+        }
+    }
+
+    @Suite("Given the artwork cache")
+    struct Cache {
+        static let request = ArtworkRequest(id: ArtworkKey(kind: .song, id: 7), side: 100)
+
+        static func image() -> UIImage {
+            UIGraphicsImageRenderer(size: CGSize(width: 10, height: 10)).image { _ in }
+        }
+
+        @Test("When an image was rendered, then the same request is served from the cache")
+        func hit() async throws {
+            let cache = ArtworkCache()
+            let calls = SizeRecorder()
+
+            let first = await cache.render(Self.request) { size in
+                calls.requested.append(size)
+                return Self.image()
+            }
+
+            #expect(first != nil)
+            #expect(cache.image(for: Self.request) === first)
+            #expect(cache.image(for: ArtworkRequest(id: Self.request.id, side: 200)) == nil)
+            #expect(calls.requested == [CGSize(width: 100, height: 100)])
+        }
+
+        @Test("When the artwork is rendered, then it isn't on the main thread")
+        func offMain() async {
+            let cache = ArtworkCache()
+            let onMain = ThreadRecorder()
+
+            _ = await cache.render(Self.request) { _ in
+                onMain.record(Thread.isMainThread)
+                return Self.image()
+            }
+
+            #expect(onMain.values == [false])
+        }
+
+        @Test("When an item has no persistent ID, then its artwork isn't cached")
+        func uncacheable() async {
+            let cache = ArtworkCache()
+            let request = ArtworkRequest(id: ArtworkKey(kind: .song, id: 0), side: 100)
+
+            _ = await cache.render(request) { _ in Self.image() }
+
+            #expect(cache.image(for: request) == nil)
+        }
+
+        @Test("When there is no artwork, then nothing is cached")
+        func none() async {
+            let cache = ArtworkCache()
+            let image = await cache.render(Self.request) { _ in nil }
+
+            #expect(image == nil)
+            #expect(cache.image(for: Self.request) == nil)
         }
     }
 

@@ -51,7 +51,19 @@ struct SongList: View {
 ```
 
 `@MediaQuery` asks for access on its first fetch, and refetches when the query or the library
-changes. `$songs.isLoading` and `$songs.error` report its state.
+changes. `$songs.isLoading` and `$songs.error` report its state. The rows stay put while it
+refetches, and it fetches again when someone returns from Settings with access turned on.
+
+Outside a view, `library.results(_:)` gives the same stream of fetches:
+
+```swift
+for await result in library.results(.songs.sorted(by: \.title)) {
+    switch result {
+    case .success(let songs): self.songs = songs
+    case .failure(let error): self.error = error     // the stream keeps going
+    }
+}
+```
 
 Name the queries your app repeats:
 
@@ -63,7 +75,7 @@ extension LibraryQuery where Element == Song {
 @MediaQuery(.mostSkipped) var songs
 ```
 
-`ArtworkImage` decodes artwork off the main thread. Give it your own placeholder and corner radius,
+`ArtworkImage` renders and decodes artwork off the main thread, and keeps it in a memory cache. Give it your own placeholder and corner radius,
 or leave out the size to fill a grid cell:
 
 ```swift

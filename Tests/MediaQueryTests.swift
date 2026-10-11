@@ -1,5 +1,6 @@
 import MediaPlayer
 import Testing
+import UIKit
 
 @testable import MediaBridge
 
@@ -117,6 +118,61 @@ struct MediaQueryTests {
             await loader.settle()
 
             #expect(service.requests.count == 2)
+        }
+
+        @Test("When the library changes, then the rows stay and loading doesn't flash")
+        func quietRefetch() async throws {
+            let changes = CountingChanges()
+            let service = MockMusicLibraryService(items: [StubMediaItem.song("A")])
+            let library = MusicLibrary(auth: .mock, service: service, changes: changes)
+            let loader = MediaQueryLoader<Song>()
+            loader.update(query: .songs, library: library)
+            await loader.settle()
+
+            changes.fire()
+            while service.requests.count < 2 {
+                #expect(!loader.isLoading)
+                #expect(loader.elements.map(\.title) == ["A"])
+                await Task.yield()
+            }
+            await Task.yield()
+
+            #expect(!loader.isLoading)
+            #expect(loader.elements.map(\.title) == ["A"])
+        }
+
+        @Test("When access was denied and the app returns with access granted, then it fetches again")
+        func recoversOnForeground() async throws {
+            let notifications = NotificationCenter()
+            let auth = SwitchableAuthorization(.denied)
+            let service = MockMusicLibraryService(items: [StubMediaItem.song("A")])
+            let library = MusicLibrary(auth: auth, service: service, changes: CountingChanges())
+            let loader = MediaQueryLoader<Song>(notifications: notifications)
+            loader.update(query: .songs, library: library)
+            await loader.settle()
+            #expect(loader.error == .unauthorized(.denied))
+
+            auth.set(.authorized)
+            notifications.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+            while loader.elements.isEmpty { await Task.yield() }
+
+            #expect(loader.elements.map(\.title) == ["A"])
+            #expect(loader.error == nil)
+        }
+
+        @Test("When the app returns and access is still denied, then it doesn't fetch again")
+        func staysDenied() async throws {
+            let notifications = NotificationCenter()
+            let service = MockMusicLibraryService()
+            let library = MusicLibrary(auth: SwitchableAuthorization(.denied), service: service, changes: CountingChanges())
+            let loader = MediaQueryLoader<Song>(notifications: notifications)
+            loader.update(query: .songs, library: library)
+            await loader.settle()
+
+            notifications.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+            for _ in 0..<20 { await Task.yield() }
+
+            #expect(service.requests.isEmpty)
         }
 
         @Test("When fetching fails, then the error is kept and the previous elements stay")
