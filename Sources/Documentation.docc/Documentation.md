@@ -135,6 +135,22 @@ struct MiniPlayer: View {
 }
 ```
 
+A progress bar needs no polling. `$song.position` says where playback was and how fast it moves, and `TimelineView` asks for the time as often as you like:
+
+```swift
+TimelineView(.periodic(from: .now, by: 0.5)) { context in
+    Slider(
+        value: Binding(
+            get: { $song.position.time(at: context.date, clampedTo: song.duration) },
+            set: { $song.seek(to: $0) }),
+        in: 0...song.duration)
+}
+```
+
+`$song.repeatMode`, `$song.shuffleMode`, and the `setRepeatMode(_:)` and `setShuffleMode(_:)` methods next to them cover the rest of a player's controls. MediaPlayer sends no notification when repeat or shuffle change, so a change made elsewhere shows up when your app becomes active.
+
+`MPMusicPlayerController.applicationQueuePlayer` is the one player that can read its queue, so only it fills `$song.queue`, `$song.queueIndex`, and `$song.upNext`. It can also remove songs: `try await player.removeFromQueue(songs)`.
+
 In previews, `.musicPlayer(.preview(queue:state:))` supplies a ``PreviewMusicPlayer`` that keeps its queue in memory.
 
 ### Errors
@@ -245,6 +261,7 @@ let library = MusicLibrary(service: FixtureService(songs: fixtures))
 
 ### Playback
 - ``MusicPlayerProtocol``
+- ``PlaybackPosition``
 - ``PreviewMusicPlayer``
 
 ### Library Changes

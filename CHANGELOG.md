@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-11
+
+### Added
+- `PlaybackPosition`, where playback was at one moment and how fast it moves. `$song.position.time(at:clampedTo:)` computes progress for any later date, so a `TimelineView` progress bar needs no polling timer.
+- `$song.seek(to:)`, `$song.setRepeatMode(_:)`, `$song.setShuffleMode(_:)` and `$song.repeatMode`, `$song.shuffleMode`, `$song.position` on `@NowPlaying`.
+- `$song.queue`, `$song.queueIndex` and `$song.upNext` on `@NowPlaying`, from the player's real queue. Only `MPMusicPlayerController.applicationQueuePlayer` can report its queue; for the other players they are empty.
+- `MusicPlayerProtocol.currentPlaybackTime`, `currentPlaybackRate`, `repeatMode`, `shuffleMode`, `indexOfNowPlayingItem`, `prepareToPlay()` and `queuedSongs()`, with default implementations, so conforming types written before 1.5 keep compiling. `playbackPosition` and `nowPlayingIndex` build on them.
+- `applicationQueuePlayer.queuedSongs()` and `removeFromQueue(_:)`.
+- `PreviewMusicPlayer` keeps playback time, repeat and shuffle modes, and reports its queue; skipping to the beginning resets the time.
+- Example app: a full player with progress, seeking, repeat, shuffle and an editable Up Next list, and tap a song to play from there.
+
+### Changed
+- `NowPlaying.Status` is now `@MainActor` and reads from the loader, so the playback state it shows can't go stale.
+
 ## [1.4.0] - 2026-10-11
 
 ### Added

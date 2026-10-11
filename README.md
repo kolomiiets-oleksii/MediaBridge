@@ -171,6 +171,30 @@ struct MiniPlayer: View {
 }
 ```
 
+A progress bar needs no polling: `$song.position` says where playback was and how fast it moves,
+and `TimelineView` asks for the time as often as you like. Repeat, shuffle, and seeking are there too:
+
+```swift
+TimelineView(.periodic(from: .now, by: 0.5)) { context in
+    Slider(
+        value: Binding(
+            get: { $song.position.time(at: context.date, clampedTo: song.duration) },
+            set: { $song.seek(to: $0) }),
+        in: 0...song.duration)
+}
+
+$song.setRepeatMode(.all)
+$song.setShuffleMode(.songs)
+```
+
+An Up Next list reads the real queue, which only `MPMusicPlayerController.applicationQueuePlayer`
+allows (set it with `.musicPlayer(MPMusicPlayerController.applicationQueuePlayer)`):
+
+```swift
+ForEach($song.upNext) { SongRow(song: $0) }
+try await queuePlayer.removeFromQueue([song])
+```
+
 ## Previews
 
 ```swift

@@ -1,4 +1,5 @@
 import MediaBridge
+import MediaPlayer
 import SwiftUI
 
 @main
@@ -12,10 +13,16 @@ struct MediaBridgeSampleApp: App {
         return MusicLibrary()
     }()
 
+    /// `applicationQueuePlayer` is the one whose queue can be read, for the Up Next list.
+    private let player: any MusicPlayerProtocol = ProcessInfo.processInfo.arguments.contains("-demoLibrary")
+        ? .preview(queue: DemoSongs.all)
+        : MPMusicPlayerController.applicationQueuePlayer
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .musicLibrary(library)
+                .musicPlayer(player)
         }
     }
 }

@@ -7,6 +7,7 @@ struct SkippedSongList: View {
 
     @Environment(\.musicLibrary) private var library
     @Environment(\.openURL) private var openURL
+    @Environment(\.musicPlayer) private var player
     @MediaQuery private var songs: [Song]
     @State private var error: MusicLibraryError?
     @State private var errorTitle = ""
@@ -21,7 +22,13 @@ struct SkippedSongList: View {
 
     var body: some View {
         List(songs) { song in
-            SongRow(song: song)
+            Button {
+                player.setQueue(with: songs, startingAt: song)
+                player.play()
+            } label: {
+                SongRow(song: song)
+            }
+            .buttonStyle(.plain)
         }
         .overlay {
             if $songs.isLoading && songs.isEmpty {

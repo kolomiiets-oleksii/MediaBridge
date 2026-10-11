@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var order: SortOrder = .reverse
+    @State private var isShowingPlayer = false
 
     var body: some View {
         if ProcessInfo.processInfo.arguments.contains("-benchmark") {
@@ -20,7 +21,9 @@ struct ContentView: View {
                     Button("Sort", systemImage: "arrow.up.arrow.down") {
                         order = order == .forward ? .reverse : .forward
                     }
+                    Button("Player", systemImage: "play.circle") { isShowingPlayer = true }
                 }
+                .sheet(isPresented: $isShowingPlayer) { PlayerView() }
         }
     }
 }
