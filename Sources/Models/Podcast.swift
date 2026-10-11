@@ -3,7 +3,7 @@ import MediaPlayer
 
 /// A podcast in the user's library, with its downloaded episodes.
 ///
-/// To list episodes across podcasts, query ``Song`` with `.mediaType(.podcast)`.
+/// To list episodes across podcasts, query `.episodes`.
 public struct Podcast: Identifiable, Hashable, @unchecked Sendable {
     /// The underlying collection, for APIs such as `MPMusicPlayerController` that need it.
     public let mediaCollection: MPMediaItemCollection
@@ -16,6 +16,8 @@ public struct Podcast: Identifiable, Hashable, @unchecked Sendable {
     public var title: String? { representative.value(MPMediaItemPropertyPodcastTitle) }
     public var episodeCount: Int { mediaCollection.count }
     public var episodes: [Song] { mediaCollection.items.map(Song.init) }
+    /// The downloaded episodes as ``Episode``s, which know their bookmark and progress.
+    public var allEpisodes: [Episode] { mediaCollection.items.map(Episode.init) }
 
     public static func == (lhs: Podcast, rhs: Podcast) -> Bool { lhs.id == rhs.id }
     public func hash(into hasher: inout Hasher) { hasher.combine(id) }
