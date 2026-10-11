@@ -82,6 +82,48 @@ let sections = try await library.sections(.artists)   // A–Z, like the Music a
 
 `==` on a property MediaPlayer can filter and `.contains` run inside MediaPlayer's query; every other condition runs in memory. Sorting reads each key once per element.
 
+Combine conditions with `&&`, `||` and `!`, and use `.hasPrefix` and `.isIn` for strings and sets:
+
+```swift
+let wanted = try await library.fetch(
+    .songs.filter(\.artist == "Adele" || \.artist == "Sade").filter(!(\.isExplicit)))
+let a = try await library.fetch(.songs.filter(\.title, .hasPrefix("a")))
+let some = try await library.fetch(.songs.filter(\.genre, .isIn(["Jazz", "Blues"])))
+```
+
+`&&` keeps each side inside MediaPlayer's query when it can. MediaPlayer can't express "or" or "not", so a query that uses them fetches everything the rest of the query allows and tests those in memory.
+
+### Stats
+
+Group songs by any property and total over each group, for top artists, listening time, or a year in review:
+
+```swift
+let artists = try await library.grouped(.songs, by: \.artist)
+    .sorted { $0.sum(of: \.playCount) > $1.sum(of: \.playCount) }
+
+let hours = artists[0].sum(of: { $0.duration * Double($0.playCount) }) / 3600
+```
+
+Split a list by something other than the first letter, such as the month songs were added:
+
+```swift
+let byMonth = try await library.sections(
+    .songs.sorted(by: \.dateAdded, .reverse),
+    by: \.dateAdded,
+    title: { $0?.formatted(.dateTime.year().month(.wide)) })
+```
+
+MediaPlayer keeps only a song's lifetime play count, so "plays this month" has no direct answer. ``PlayCountHistory`` records the counts as you launch the app and subtracts, **counting only from the first time it records**:
+
+```swift
+let history = PlayCountHistory()
+try await history.record(from: library)       // at launch and when the app returns to the foreground
+
+let plays = try await history.plays(since: monthStart)          // persistent ID → plays this month
+let thisMonth = try await library.grouped(.songs, by: \.artist)
+    .sorted { $0.sum(of: { plays[$0.id] ?? 0 }) > $1.sum(of: { plays[$0.id] ?? 0 }) }
+```
+
 Outside a SwiftUI view, stream a query with `results(_:)`: it yields the results now and again after each change to the library, which `@MediaQuery` runs on:
 
 ```swift
@@ -249,9 +291,17 @@ let library = MusicLibrary(service: FixtureService(songs: fixtures))
 - ``LibraryQuery``
 - ``LibraryCondition``
 - ``LibraryPredicate``
+- ``LibraryGroup``
 - ``LibraryElement``
 - ``CollectionElement``
 - ``MediaSection``
+
+### Play History
+- ``PlayCountHistory``
+- ``PlayCountStore``
+- ``FilePlayCountStore``
+- ``InMemoryPlayCountStore``
+- ``PlayCountSnapshot``
 
 ### The Library
 - ``MusicLibrary``

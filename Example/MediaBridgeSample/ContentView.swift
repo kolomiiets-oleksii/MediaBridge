@@ -22,6 +22,7 @@ struct ContentView: View {
                         order = order == .forward ? .reverse : .forward
                     }
                     Button("Player", systemImage: "play.circle") { isShowingPlayer = true }
+                    NavigationLink("Top Artists", destination: TopArtistsView())
                 }
                 .sheet(isPresented: $isShowingPlayer) { PlayerView() }
         }

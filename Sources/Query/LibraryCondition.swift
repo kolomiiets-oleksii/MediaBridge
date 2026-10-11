@@ -45,6 +45,39 @@ extension LibraryCondition where Value == String {
     }
 }
 
+extension LibraryCondition where Value == String? {
+    /// Matches when the value starts with `prefix`, ignoring case and diacritics.
+    public static func hasPrefix(_ prefix: String) -> Self {
+        Self("hasPrefix", prefix, pushdown: nil, test: { $0.map { Self.starts($0, with: prefix) } ?? false })
+    }
+}
+
+extension LibraryCondition where Value == String {
+    /// Matches when the value starts with `prefix`, ignoring case and diacritics.
+    public static func hasPrefix(_ prefix: String) -> Self {
+        Self("hasPrefix", prefix, pushdown: nil, test: { Self.starts($0, with: prefix) })
+    }
+}
+
+extension LibraryCondition {
+    fileprivate static func starts(_ value: String, with prefix: String) -> Bool {
+        // `range(of:)` finds nothing for an empty string, but every string starts with one.
+        prefix.isEmpty || value.range(of: prefix, options: [.anchored, .caseInsensitive, .diacriticInsensitive]) != nil
+    }
+}
+
+extension LibraryCondition where Value: Hashable {
+    /// Matches when the value is one of `values`, such as `.filter(\.artist, .isIn(["Adele", "Sade"]))`.
+    ///
+    /// Runs in memory: MediaPlayer's query can't filter by several values at once.
+    public static func isIn(_ values: some Sequence<Value>) -> Self {
+        let set = Set(values)
+        // Sorted, so two queries built from equal sets compare equal whatever order a Set iterates in.
+        let operand = set.map { String(reflecting: $0) }.sorted()
+        return Self("isIn", operand, pushdown: nil, test: { set.contains($0) })
+    }
+}
+
 extension LibraryCondition where Value: Comparable {
     public static func greaterThan(_ bound: Value) -> Self { Self("greaterThan", bound, pushdown: nil, test: { $0 > bound }) }
     public static func lessThan(_ bound: Value) -> Self { Self("lessThan", bound, pushdown: nil, test: { $0 < bound }) }

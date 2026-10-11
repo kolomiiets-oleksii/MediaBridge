@@ -30,12 +30,17 @@ public struct LibraryQuery<Element: LibraryElement>: Sendable, Equatable {
         let keys: @Sendable ([Element]) -> (Int, Int) -> ComparisonResult
     }
 
-    struct Identity: Equatable, Sendable {
+    struct Identity: Hashable, Sendable {
         let keyPath: any Hashable & Sendable
         let detail: String
 
         static func == (lhs: Identity, rhs: Identity) -> Bool {
             AnyHashable(lhs.keyPath) == AnyHashable(rhs.keyPath) && lhs.detail == rhs.detail
+        }
+
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(AnyHashable(keyPath))
+            hasher.combine(detail)
         }
     }
 
@@ -57,6 +62,12 @@ public struct LibraryQuery<Element: LibraryElement>: Sendable, Equatable {
             Element.predicate(for: keyPath, value: pushdown.value).map { MediaQueryRequest.Filter($0, pushdown.comparison) }
         }
         copy.clauses.append(Clause(filter: pushed, identity: Identity(keyPath: keyPath, detail: condition.identity), test: { condition.test($0[keyPath: keyPath]) }))
+        return copy
+    }
+
+    func appending(_ clause: Clause) -> Self {
+        var copy = self
+        copy.clauses.append(clause)
         return copy
     }
 
