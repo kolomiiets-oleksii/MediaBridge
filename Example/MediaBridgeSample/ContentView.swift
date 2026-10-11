@@ -5,6 +5,14 @@ struct ContentView: View {
     @State private var order: SortOrder = .reverse
 
     var body: some View {
+        if ProcessInfo.processInfo.arguments.contains("-benchmark") {
+            BenchmarkView()
+        } else {
+            songs
+        }
+    }
+
+    private var songs: some View {
         NavigationStack {
             SkippedSongList(order: order)
                 .navigationTitle("Skipped Songs")
