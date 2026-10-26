@@ -20,7 +20,10 @@
             if status == .notDetermined { status = await MusicAuthorization.request() }
             guard status == .authorized else { throw .notAuthorized }
 
-            var search = MusicCatalogSearchRequest(term: request.term, types: request.kinds.compactMap(Self.searchableType))
+            let types = request.kinds.compactMap(Self.searchableType)
+            guard !types.isEmpty else { return [] }  // only music videos asked for, before iOS 15.4
+
+            var search = MusicCatalogSearchRequest(term: request.term, types: types)
             search.limit = request.limit
             search.offset = request.offset
             if request.includesTopResults, #available(iOS 16.0, *) { search.includeTopResults = true }
