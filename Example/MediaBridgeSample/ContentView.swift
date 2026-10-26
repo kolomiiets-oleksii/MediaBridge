@@ -25,6 +25,7 @@ struct ContentView: View {
     }
 }
 
+#if DEBUG
 #Preview("Songs") {
     ContentView()
         .musicLibrary(.preview(songs: DemoSongs.all))
@@ -34,3 +35,4 @@ struct ContentView: View {
     ContentView()
         .musicLibrary(.accessDenied)
 }
+#endif
