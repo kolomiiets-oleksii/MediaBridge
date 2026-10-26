@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-10-26
+
+### Added
+- Apple Music catalog search. `MusicKitCatalog().search(CatalogSearchRequest(term:))` returns `CatalogItem`s (`id` is the store ID, with `kind`, `title`, `artistName`, `url` and a 512-point `artworkURL`) for songs, albums, artists, playlists, music videos and stations, and for top results with `includesTopResults` (iOS 16). A request checks its term, kinds, limit (1...25) and offset when built, and throws `CatalogError.invalidRequest`.
+- `CatalogSearching`, the protocol `MusicKitCatalog` conforms to, so code that searches can be tested with a fake. MusicKit's own results can't be built by hand.
+- `player.setQueue(withStoreIDs:)`, `playNext(storeIDs:)`, `playLater(storeIDs:)` and `setQueue(with: [CatalogItem])` play catalog items. Together with the existing `library.add(productID:)`, "search the catalog, then add or play" works from a `CatalogItem.id`.
+
+### Changed
+- `$song.seek(to:)` ignores NaN and infinite times, and holds the time to the song's duration (to 24 hours when the duration is unknown). It used to clamp only below zero.
+- `ArtworkCache` shares one render between simultaneous requests for the same artwork, and keeps up to 1500 images or 96 MB.
+
+### Notes
+- Catalog search needs the MusicKit App Service enabled for the app's App ID, and `NSAppleMusicUsageDescription`. The first search asks for access; without it the search throws `CatalogError.notAuthorized`.
+- Music videos in search need iOS 15.4; before that they are left out.
+- MusicKit is imported in one file (`MusicKitCatalog.swift`) because its `Song`, `Album`, `Artist` and `Playlist` share names with MediaBridge's models.
+
 ## [1.7.0] - 2026-10-11
 
 ### Added

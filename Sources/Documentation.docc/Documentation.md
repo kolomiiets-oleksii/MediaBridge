@@ -256,6 +256,22 @@ Button("Add Songs") { isPicking = true }
     }
 ```
 
+### Catalog Search
+
+Search the Apple Music catalog, then add or play what you find by its store ID. The app needs the MusicKit App Service enabled for its App ID, and the same `NSAppleMusicUsageDescription` as the library.
+
+```swift
+let catalog: any CatalogSearching = MusicKitCatalog()
+let request = try CatalogSearchRequest(term: "Adele", kinds: [.song, .album], limit: 10)
+let items = try await catalog.search(request)
+
+try await library.add(productID: items[0].id)
+player.setQueue(with: items)       // songs, albums and playlists play
+player.playNext(storeIDs: [items[0].id])
+```
+
+Conform your own type to ``CatalogSearching`` in tests; MusicKit's results can't be built by hand.
+
 ### Previews
 
 In debug builds, `.preview(...)` builds a ``MusicLibrary`` backed by fixed data, and presets such as `.accessDenied` cover each authorization state. Queries, sorting, and the authorization flow run through the real library, and songs are grouped into albums, artists, genres, and composers when you don't pass collections:
@@ -333,6 +349,14 @@ let library = MusicLibrary(service: FixtureService(songs: fixtures))
 - ``MusicPlayerProtocol``
 - ``PlaybackPosition``
 - ``PreviewMusicPlayer``
+
+### Catalog
+- ``CatalogSearching``
+- ``MusicKitCatalog``
+- ``CatalogSearchRequest``
+- ``CatalogItem``
+- ``CatalogKind``
+- ``CatalogError``
 
 ### Library Changes
 - ``LibraryChangesProtocol``
