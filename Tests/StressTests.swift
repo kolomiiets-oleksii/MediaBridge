@@ -276,9 +276,7 @@ struct StressTests {
                 for _ in 0..<50 { group.addTask { _ = await Artwork.show(item, in: cache) } }
             }
             print("STRESS|renders for 50 simultaneous requests of one key|n=100|\(fake.meter.renders)")
-            withKnownIssue("ArtworkCache has no in-flight de-duplication", isIntermittent: true) {
-                #expect(fake.meter.renders == 1)
-            }
+            #expect(fake.meter.renders == 1, "simultaneous requests for one key each rendered")
         }
 
         @Test("When the list is reloaded with new item instances, then cached artwork is reused")

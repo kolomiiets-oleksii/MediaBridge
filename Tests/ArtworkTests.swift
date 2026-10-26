@@ -1,3 +1,4 @@
+import Foundation
 import MediaPlayer
 import SwiftUI
 import Testing
@@ -16,6 +17,13 @@ struct ArtworkTests {
         private var recorded: [Bool] = []
         var values: [Bool] { lock.withLock { recorded } }
         func record(_ value: Bool) { lock.withLock { recorded.append(value) } }
+    }
+
+    final class Counter: @unchecked Sendable {
+        private let lock = NSLock()
+        private var count = 0
+        var value: Int { lock.withLock { count } }
+        func increment() { lock.withLock { count += 1 } }
     }
 
     static func item(recording recorder: SizeRecorder) -> StubMediaItem {
@@ -219,6 +227,29 @@ struct ArtworkTests {
             _ = await cache.render(request) { _ in Self.image() }
 
             #expect(cache.image(for: request) == nil)
+        }
+
+        @Test("When one of two callers sharing a render is cancelled, then the other still gets the image")
+        func cancelOneOfTwo() async {
+            let cache = ArtworkCache()
+            let gate = DispatchSemaphore(value: 0)
+            let renders = Counter()
+            let render: @Sendable (CGSize) -> UIImage? = { _ in
+                renders.increment()
+                gate.wait()
+                return Self.image()
+            }
+
+            let cancelled = Task { await cache.render(Self.request, with: render) }
+            let kept = Task { await cache.render(Self.request, with: render) }
+            while renders.value == 0 { try? await Task.sleep(nanoseconds: 5_000_000) }
+            // Let the second caller join the running render before the first one leaves.
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            cancelled.cancel()
+            gate.signal()
+
+            #expect(await kept.value != nil)
+            #expect(renders.value == 1)
         }
 
         @Test("When there is no artwork, then nothing is cached")
