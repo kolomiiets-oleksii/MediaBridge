@@ -9,6 +9,16 @@ extension LibraryQuery where Element == Song {
     public static var audiobooks: Self { Song.query.mediaType(.audioBook) }
 }
 
+extension LibraryQuery where Element == Episode {
+    /// Every podcast episode, across podcasts, as ``Episode``s.
+    public static var episodes: Self { Episode.query }
+}
+
+extension LibraryQuery where Element == Audiobook {
+    /// Every audiobook, as ``Audiobook``s.
+    public static var books: Self { Audiobook.query }
+}
+
 extension LibraryQuery where Element == Album {
     /// Every album.
     public static var albums: Self { Album.query }

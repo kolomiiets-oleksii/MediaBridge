@@ -93,6 +93,23 @@ let some = try await library.fetch(.songs.filter(\.genre, .isIn(["Jazz", "Blues"
 
 `&&` keeps each side inside MediaPlayer's query when it can. MediaPlayer can't express "or" or "not", so a query that uses them fetches everything the rest of the query allows and tests those in memory.
 
+### Podcasts and Audiobooks
+
+`.episodes` and `.books` fetch ``Episode``s and ``Audiobook``s, which know where someone stopped. `.podcastEpisodes` and `.audiobooks` still fetch the same media as ``Song``s.
+
+```swift
+@MediaQuery(.episodes.filter(\.podcastTitle == "Radiolab").sorted(by: \.releaseDate, .reverse)) var episodes
+
+ForEach(episodes) { episode in
+    Text(episode.title ?? "")
+    if episode.isInProgress, let progress = episode.progress {
+        ProgressView(value: progress)
+    }
+}
+```
+
+MediaPlayer returns the podcasts and audiobooks it holds in the music library. Content that only the Podcasts and Books apps keep may not appear, and MediaBridge can't change that. `bookmarkTime` is read-only: MediaPlayer keeps the bookmark itself.
+
 ### Stats
 
 Group songs by any property and total over each group, for top artists, listening time, or a year in review:
@@ -286,6 +303,9 @@ let library = MusicLibrary(service: FixtureService(songs: fixtures))
 - ``Composer``
 - ``Playlist``
 - ``Podcast``
+- ``Episode``
+- ``Audiobook``
+- ``ResumableItem``
 
 ### Queries
 - ``LibraryQuery``

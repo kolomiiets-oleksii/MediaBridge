@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-10-11
+
+### Added
+- `Episode` and `Audiobook` models, fetched with `.episodes` and `.books`. They add `bookmarkTime`, `progress`, `isInProgress` and `isPlayed` to the usual title, dates and play count, and push `podcastTitle`, `podcastID` and `author` filters into MediaPlayer's query.
+- `ResumableItem`, which `Song`, `Episode` and `Audiobook` conform to, for progress code that works on any of them. `isPlayed` comes from the play count: MediaPlayer has no "has been played" property.
+- `Song.mediaType`, `trackNumber`, `trackCount`, `discNumber`, `discCount`, `lyrics`, `comments`, `beatsPerMinute`, `bookmarkTime`, `podcastTitle`, `podcastID` and `assetURL`. `podcastTitle`, `podcastID` and `mediaType` filters run inside MediaPlayer's query.
+- `Podcast.allEpisodes`, the podcast's downloaded episodes as `Episode`s.
+
+### Notes
+- `.podcastEpisodes` and `.audiobooks` still return `Song`s and are not deprecated.
+- MediaPlayer returns the podcasts and audiobooks it holds in the music library. Content that only the Podcasts and Books apps keep may not appear.
+
 ## [1.6.0] - 2026-10-11
 
 ### Added
