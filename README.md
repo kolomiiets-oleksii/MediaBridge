@@ -109,6 +109,26 @@ let topLocal = try await library.fetch(
 let sections = try await library.sections(.albums)   // A–Z, like the Music app
 ```
 
+Combine conditions with `&&`, `||` and `!`; total over groups for stats:
+
+```swift
+let adeleOrSade = try await library.fetch(.songs.filter(\.artist == "Adele" || \.artist == "Sade"))
+
+let topArtists = try await library.grouped(.songs, by: \.artist)
+    .sorted { $0.sum(of: \.playCount) > $1.sum(of: \.playCount) }
+```
+
+`&&` stays inside MediaPlayer's query where it can; `||` and `!` run in memory.
+
+MediaPlayer keeps only lifetime play counts. For "plays this month", record them over time
+(counting starts at the first record):
+
+```swift
+let history = PlayCountHistory()
+try await history.record(from: library)                    // at launch and on foreground
+let plays = try await history.plays(since: monthStart)      // persistent ID → plays since
+```
+
 Every call throws one typed error:
 
 ```swift

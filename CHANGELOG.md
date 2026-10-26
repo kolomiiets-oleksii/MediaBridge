@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-11
+
+### Added
+- `&&`, `||` and `!` on key-path conditions: `.filter(\.artist == "Adele" || \.artist == "Sade")`. `&&` keeps each side inside MediaPlayer's query; `||` and `!` run in memory, since MediaPlayer can't express them.
+- `.hasPrefix(_:)` and `.isIn(_:)` conditions, for example `.filter(\.genre, .isIn(["Jazz", "Blues"]))`. Equal sets compare equal whatever order they iterate in, so a `@MediaQuery` built from a set doesn't refetch on every update.
+- `library.grouped(_:by:)` returns `LibraryGroup`s, the elements that share a value with `count`, `sum(of:)`, `maximum(of:)`, `minimum(of:)` and `average(of:)`. Sort the groups by a total for top artists, listening time and the like.
+- `library.sections(_:by:title:)` splits a query into sections by any value, such as the month songs were added, instead of the first letter of the title.
+- `PlayCountHistory`, an opt-in record of play counts over time, for plays per period, which MediaPlayer can't report. It stores only the counts that changed, in a JSON file by default (`FilePlayCountStore`) or in memory (`InMemoryPlayCountStore`). It counts only from the first time it records.
+- Example app: a Top Artists screen built with `grouped`.
+
 ## [1.5.0] - 2026-10-11
 
 ### Added
