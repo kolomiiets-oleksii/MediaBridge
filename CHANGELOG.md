@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-10-26
+
+### Changed
+- `ArtworkImage` renders artwork once when several rows ask for the same image at the same time, and its cache keeps up to 1500 images or 96 MB.
+
+### Fixed
+- `$song.seek(to:)` ignores NaN and infinite times, and holds the time to the song's duration (to 24 hours when the duration is unknown). It used to clamp only below zero.
+
 ## [1.7.0] - 2026-10-11
 
 ### Added
