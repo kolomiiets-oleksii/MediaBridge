@@ -11,7 +11,7 @@
         // NSCache is thread-safe, and evicts on memory pressure by itself.
         private let cache = NSCache<NSString, UIImage>()
 
-        init(countLimit: Int = 600, byteLimit: Int = 48 * 1024 * 1024) {
+        init(countLimit: Int = 1_500, byteLimit: Int = 96 * 1024 * 1024) {
             cache.countLimit = countLimit
             cache.totalCostLimit = byteLimit
         }
@@ -30,22 +30,59 @@
         /// Renders `request` off the main actor, and caches the result.
         ///
         /// `render` is MediaPlayer's `MPMediaItemArtwork.image(at:)` call, so it runs on a
-        /// background thread here, followed by the decode for display. Cancelling the caller
-        /// cancels the work if it hasn't started.
+        /// background thread here, followed by the decode for display. Callers asking for the
+        /// same request while it renders share that one render. Cancelling a caller cancels the
+        /// work, if it hasn't started, only once every caller has cancelled.
         func render(
             _ request: ArtworkRequest, with render: @escaping @Sendable (CGSize) -> UIImage?
         ) async -> UIImage? {
             let size = CGSize(width: request.side, height: request.side)
-            let work = Task.detached(priority: .userInitiated) { () -> UIImage? in
-                guard !Task.isCancelled else { return nil }
-                return await render(size)?.byPreparingForDisplay()
+            guard let key = Self.key(for: request).map({ $0 as String }) else {
+                // No persistent ID, so nothing to share or cache.
+                return await Task.detached(priority: .userInitiated) { () -> UIImage? in
+                    guard !Task.isCancelled else { return nil }
+                    return await render(size)?.byPreparingForDisplay()
+                }.value
             }
-            let image = await withTaskCancellationHandler {
-                await work.value
+
+            let flight = lock.withLock { () -> Flight in
+                if let running = flights[key] {
+                    running.waiters += 1
+                    return running
+                }
+                let flight = Flight()
+                flights[key] = flight
+                flight.task = Task.detached(priority: .userInitiated) { [self] () -> UIImage? in
+                    guard !Task.isCancelled else { return finish(key, flight, nil, request) }
+                    let image = await render(size)?.byPreparingForDisplay()
+                    return finish(key, flight, image, request)
+                }
+                return flight
+            }
+            return await withTaskCancellationHandler {
+                await flight.task.value
             } onCancel: {
-                work.cancel()
+                lock.withLock {
+                    flight.waiters -= 1
+                    if flight.waiters == 0 {
+                        flight.task.cancel()
+                        if flights[key] === flight { flights[key] = nil }
+                    }
+                }
             }
+        }
+
+        private final class Flight: @unchecked Sendable {
+            var task: Task<UIImage?, Never>!
+            var waiters = 1
+        }
+
+        private let lock = NSLock()
+        private var flights: [String: Flight] = [:]
+
+        private func finish(_ key: String, _ flight: Flight, _ image: UIImage?, _ request: ArtworkRequest) -> UIImage? {
             if let image { insert(image, for: request) }
+            lock.withLock { if flights[key] === flight { flights[key] = nil } }
             return image
         }
 
