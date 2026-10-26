@@ -27,6 +27,7 @@ final class StubMediaItem: MPMediaItem, @unchecked Sendable {
     override var title: String? { values[MPMediaItemPropertyTitle] as? String }
     override var artist: String? { values[MPMediaItemPropertyArtist] as? String }
     override var playCount: Int { values[MPMediaItemPropertyPlayCount] as? Int ?? 0 }
+    override var playbackDuration: TimeInterval { values[MPMediaItemPropertyPlaybackDuration] as? TimeInterval ?? 0 }
     override var isExplicitItem: Bool { values[MPMediaItemPropertyIsExplicit] as? Bool ?? false }
 }
 

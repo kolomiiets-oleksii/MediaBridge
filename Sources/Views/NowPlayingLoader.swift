@@ -57,8 +57,26 @@ final class NowPlayingLoader: ObservableObject {
     }
 
     func seek(to time: TimeInterval) {
-        player?.currentPlaybackTime = max(0, time)
+        if let player, let target = Self.seekTime(time, duration: player.nowPlayingItem?.playbackDuration) {
+            player.currentPlaybackTime = target
+        }
         refreshPlayback()
+    }
+
+    /// The latest seek time, in seconds, when the song's duration is unknown.
+    static let maximumSeekTime: TimeInterval = 86_400
+
+    /// Bounds a requested seek to the playable range, or returns `nil` when `time` isn't finite.
+    ///
+    /// The upper bound is the song's duration, or ``maximumSeekTime`` when the duration is
+    /// missing, zero or not finite.
+    static func seekTime(_ time: TimeInterval, duration: TimeInterval?) -> TimeInterval? {
+        guard time.isFinite else { return nil }
+        var upperBound = maximumSeekTime
+        if let duration, duration.isFinite, duration > 0 {
+            upperBound = min(duration, maximumSeekTime)
+        }
+        return min(max(time, 0), upperBound)
     }
 
     func setRepeatMode(_ mode: MPMusicRepeatMode) {
