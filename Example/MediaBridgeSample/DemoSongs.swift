@@ -22,6 +22,7 @@ private final class DemoSong: MPMediaItem, @unchecked Sendable {
             MPMediaItemPropertyTitle: title,
             MPMediaItemPropertyArtist: artist,
             MPMediaItemPropertySkipCount: NSNumber(value: skips),
+            MPMediaItemPropertyPlaybackDuration: NSNumber(value: 180),
         ]
         if let hue {
             values[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: CGSize(width: 600, height: 600)) { size in

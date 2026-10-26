@@ -15,6 +15,12 @@ import MediaPlayer
     public final class PreviewMusicPlayer: MusicPlayerProtocol {
         private var items: [MPMediaItem]
         private var index: Int?
+        public var currentPlaybackTime: TimeInterval = 0 {
+            didSet { post(.MPMusicPlayerControllerPlaybackStateDidChange) }
+        }
+        public var currentPlaybackRate: Float = 1
+        public var repeatMode: MPMusicRepeatMode = .default
+        public var shuffleMode: MPMusicShuffleMode = .default
         public private(set) var playbackState: MPMusicPlaybackState {
             didSet { post(.MPMusicPlayerControllerPlaybackStateDidChange) }
         }
@@ -29,6 +35,9 @@ import MediaPlayer
         public var queue: [Song] { items.map(Song.init) }
 
         public var nowPlayingItem: MPMediaItem? { index.map { items[$0] } }
+        public var indexOfNowPlayingItem: Int { index ?? NSNotFound }
+
+        @MainActor public func queuedSongs() async throws(MusicLibraryError) -> [Song]? { queue }
 
         public func setQueue(with descriptor: MPMusicPlayerQueueDescriptor) {
             guard let descriptor = descriptor as? MPMusicPlayerMediaItemQueueDescriptor else { return }
@@ -41,11 +50,13 @@ import MediaPlayer
             let added = Self.items(in: descriptor)
             guard let index else { return append(descriptor) }
             items.insert(contentsOf: added, at: index + 1)
+            post(.MPMusicPlayerControllerQueueDidChange)
         }
 
         public func append(_ descriptor: MPMusicPlayerQueueDescriptor) {
             items.append(contentsOf: Self.items(in: descriptor))
             if index == nil, !items.isEmpty { move(to: 0) }
+            post(.MPMusicPlayerControllerQueueDidChange)
         }
 
         public func play() { playbackState = .playing }
@@ -62,13 +73,14 @@ import MediaPlayer
             move(to: index - 1)
         }
 
-        public func skipToBeginning() {}
+        public func skipToBeginning() { currentPlaybackTime = 0 }
 
         public func beginGeneratingPlaybackNotifications() {}
         public func endGeneratingPlaybackNotifications() {}
 
         private func move(to newIndex: Int?) {
             index = newIndex
+            currentPlaybackTime = 0
             post(.MPMusicPlayerControllerNowPlayingItemDidChange)
         }
 
