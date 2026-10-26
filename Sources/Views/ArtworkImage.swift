@@ -5,8 +5,9 @@
     /// A square artwork view that loads when it appears and shows a placeholder until then, or
     /// when the song or album has no artwork.
     ///
-    /// The image is decoded off the main thread, and VoiceOver skips the view, since the title
-    /// beside it carries the meaning.
+    /// MediaPlayer renders the image and it is decoded off the main thread, then kept in an
+    /// in-memory cache, so scrolling back to a row or reloading the list doesn't render it again.
+    /// VoiceOver skips the view, since the title beside it carries the meaning.
     ///
     /// ```swift
     /// List(songs) { song in
@@ -34,8 +35,8 @@
     ///     .placeholder { Image("logo").resizable().padding(8) }
     /// ```
     public struct ArtworkImage: View {
-        private let id: ObjectIdentifier
-        private let render: @MainActor (CGSize) -> UIImage?
+        private let key: @Sendable () -> ArtworkKey
+        private let render: @Sendable (CGSize) -> UIImage?
         let size: Double?
         private let cornerRadius: Double?
 
@@ -78,14 +79,14 @@
         }
 
         private init(_ song: Song, fixedSize: Double?, cornerRadius: Double?) {
-            id = ObjectIdentifier(song.mediaItem)
+            key = { ArtworkKey(kind: .song, id: song.id) }
             render = { song.artwork(size: $0) }
             size = fixedSize
             self.cornerRadius = cornerRadius
         }
 
         private init(_ album: Album, fixedSize: Double?, cornerRadius: Double?) {
-            id = ObjectIdentifier(album.mediaCollection)
+            key = { ArtworkKey(kind: .album, id: album.id) }
             render = { album.artwork(size: $0) }
             size = fixedSize
             self.cornerRadius = cornerRadius
@@ -103,12 +104,20 @@
         ///
         /// The placeholder is framed and clipped like the artwork.
         public func placeholder<Placeholder: View>(@ViewBuilder _ content: () -> Placeholder) -> some View {
-            ArtworkView(id: id, render: render, size: size, fixedCornerRadius: cornerRadius, placeholder: content())
+            ArtworkView(key: key, render: render, size: size, fixedCornerRadius: cornerRadius, placeholder: content())
         }
     }
 
-    struct ArtworkRequest: Equatable {
-        let id: ObjectIdentifier
+    /// Which artwork to show. The persistent ID, not the object: a refetch returns new
+    /// `MPMediaItem` instances for the same songs, and the artwork must not reload for that.
+    struct ArtworkKey: Hashable, Sendable {
+        enum Kind: Sendable { case song, album }
+        let kind: Kind
+        let id: UInt64
+    }
+
+    struct ArtworkRequest: Hashable, Sendable {
+        let id: ArtworkKey
         let side: Double
 
         static func flexibleSide(for width: Double) -> Double {
@@ -117,8 +126,8 @@
     }
 
     struct ArtworkView<Placeholder: View>: View {
-        let id: ObjectIdentifier
-        let render: @MainActor (CGSize) -> UIImage?
+        let key: @Sendable () -> ArtworkKey
+        let render: @Sendable (CGSize) -> UIImage?
         let size: Double?
         let fixedCornerRadius: Double?
         let placeholder: Placeholder
@@ -128,6 +137,8 @@
         }
 
         var body: some View {
+            // Read here, not when the view is built, so only visible rows touch MediaPlayer.
+            let id = key()
             if let size {
                 ArtworkSquare(
                     id: id, render: render, side: size, renderSide: size,
@@ -148,13 +159,27 @@
     }
 
     struct ArtworkSquare<Placeholder: View>: View {
-        let id: ObjectIdentifier
-        let render: @MainActor (CGSize) -> UIImage?
+        let id: ArtworkKey
+        let render: @Sendable (CGSize) -> UIImage?
         let side: Double
         let renderSide: Double
         let cornerRadius: Double
         let placeholder: Placeholder
         @State private var image: UIImage?
+
+        init(
+            id: ArtworkKey, render: @escaping @Sendable (CGSize) -> UIImage?, side: Double, renderSide: Double,
+            cornerRadius: Double, placeholder: Placeholder
+        ) {
+            self.id = id
+            self.render = render
+            self.side = side
+            self.renderSide = renderSide
+            self.cornerRadius = cornerRadius
+            self.placeholder = placeholder
+            // A row scrolled back into view starts with its artwork instead of the placeholder.
+            _image = State(initialValue: ArtworkCache.shared.image(for: ArtworkRequest(id: id, side: renderSide)))
+        }
 
         var body: some View {
             Group {
@@ -169,7 +194,14 @@
             .accessibilityHidden(true)
             .task(id: ArtworkRequest(id: id, side: renderSide)) {
                 guard renderSide > 0 else { return }
-                image = await render(CGSize(width: renderSide, height: renderSide))?.byPreparingForDisplay()
+                let request = ArtworkRequest(id: id, side: renderSide)
+                if let cached = ArtworkCache.shared.image(for: request) {
+                    image = cached
+                    return
+                }
+                let rendered = await ArtworkCache.shared.render(request, with: render)
+                guard !Task.isCancelled else { return }
+                image = rendered
             }
         }
     }

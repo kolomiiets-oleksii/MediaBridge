@@ -82,7 +82,20 @@ let sections = try await library.sections(.artists)   // A–Z, like the Music a
 
 `==` on a property MediaPlayer can filter and `.contains` run inside MediaPlayer's query; every other condition runs in memory. Sorting reads each key once per element.
 
-Each model keeps its MediaPlayer object, such as `song.mediaItem`, for other MediaPlayer APIs. Artwork is rendered on demand and never stored; ``ArtworkImage`` loads it when it appears, with a placeholder you can replace:
+Outside a SwiftUI view, stream a query with `results(_:)`: it yields the results now and again after each change to the library, which `@MediaQuery` runs on:
+
+```swift
+for await result in library.results(.songs.sorted(by: \.title)) {
+    switch result {
+    case .success(let songs): self.songs = songs
+    case .failure(let error): self.error = error
+    }
+}
+```
+
+A failed fetch arrives as a `.failure` and the stream keeps going. A burst of library changes, such as the play count and last played date updating as a song plays, causes one refetch.
+
+Each model keeps its MediaPlayer object, such as `song.mediaItem`, for other MediaPlayer APIs. Artwork is rendered on demand, off the main thread, and kept in an in-memory cache; ``ArtworkImage`` loads it when it appears, with a placeholder you can replace:
 
 ```swift
 ArtworkImage(song, size: 48, cornerRadius: 4)

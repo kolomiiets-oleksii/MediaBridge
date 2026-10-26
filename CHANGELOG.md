@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-27
+
+### Added
+- `library.results(_:coalescing:)`, an `AsyncStream<Result<[Element], MusicLibraryError>>` of a query's results: once now, then after each library change. It is what `@MediaQuery` runs on, for `@Observable` models, view controllers and tests. A failed fetch arrives as a `.failure` and the stream keeps going; a burst of changes causes one refetch.
+- `mediaPicker(isPresented:)` takes `showsCloudItems:` and `showsItemsWithProtectedAssets:`, which it used to leave at their defaults.
+
+### Changed
+- `@MediaQuery` keeps its rows while it refetches after a library change and no longer sets `isLoading`, so a list doesn't flash while a song plays. `isLoading` is true until the current query's first result, and during `reload()`.
+- `ArtworkImage` renders the artwork off the main thread (MediaPlayer's `image(at:)` as well as the decode) and keeps it in an in-memory cache keyed by the song's or album's persistent ID and rendered size, so scrolling back to a row doesn't render it again.
+
+### Fixed
+- `ArtworkImage` restarted its artwork load for every visible row whenever the library changed, because a refetch returns new `MPMediaItem` objects for the same songs.
+- `@MediaQuery` stayed on an `unauthorized` error after someone turned access on in Settings; it fetches again when the app returns to the foreground.
+- A query first fetched before the permission prompt was answered could miss library changes until the app restarted; observation starts again once access is granted.
+- Documentation examples that referenced `mediaItems(ofType:matching:)` and `\.library`.
+
 ## [1.3.0] - 2026-09-26
 
 ### Added

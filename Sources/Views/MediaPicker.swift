@@ -119,12 +119,17 @@
         ///   - isPresented: Whether the picker is showing; set back to `false` when it closes
         ///   - mediaTypes: The kinds of media to offer
         ///   - allowsMultipleSelection: Whether people can pick more than one item
+        ///   - showsCloudItems: Whether to offer items that aren't downloaded
+        ///   - showsItemsWithProtectedAssets: Whether to offer DRM-protected items, which
+        ///     can't be played by other apps
         ///   - prompt: Text shown above the picker's navigation bar buttons
         ///   - onPick: Receives the picked songs, in the order they were picked
         public func mediaPicker(
             isPresented: Binding<Bool>,
             mediaTypes: MPMediaType = .music,
             allowsMultipleSelection: Bool = true,
+            showsCloudItems: Bool = true,
+            showsItemsWithProtectedAssets: Bool = true,
             prompt: String? = nil,
             onPick: @escaping @MainActor ([Song]) -> Void
         ) -> some View {
@@ -132,6 +137,8 @@
                 MediaPicker(
                     mediaTypes: mediaTypes,
                     allowsMultipleSelection: allowsMultipleSelection,
+                    showsCloudItems: showsCloudItems,
+                    showsItemsWithProtectedAssets: showsItemsWithProtectedAssets,
                     prompt: prompt,
                     onPick: { songs in
                         isPresented.wrappedValue = false

@@ -3,17 +3,15 @@ import MediaPlayer
 
 /// A type-safe predicate for filtering media items in the music library.
 ///
-/// Use `MediaItemPredicateInfo` to specify filtering criteria when fetching songs or other media items.
-/// Each case represents a different property you can filter by (artist, title, genre, etc.).
+/// This is the low-level form that ``MediaQueryRequest`` carries to MediaPlayer. Most code filters
+/// with key paths instead, such as `.songs.filter(\.artist == "Taylor Swift")`, and
+/// ``LibraryQuery`` turns what MediaPlayer can filter into one of these.
 ///
 /// ## Example
 /// ```swift
 /// let library = MusicLibrary()
-/// let taylorSwiftSongs = try await library.mediaItems(
-///     ofType: .music,
-///     matching: .artist("Taylor Swift"),
-///     .contains,
-///     groupingType: .album
+/// let items = try await library.items(
+///     MediaQueryRequest(mediaType: .music, filter: .init(.artist("Taylor Swift")), grouping: .album)
 /// )
 /// ```
 public enum MediaItemPredicateInfo: Sendable, Equatable {
