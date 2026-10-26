@@ -102,7 +102,9 @@ struct PlayerView: View {
     }
 }
 
+#if DEBUG
 #Preview("Playing") {
     PlayerView()
         .musicPlayer(.preview(queue: DemoSongs.all, state: .playing))
 }
+#endif
