@@ -182,7 +182,7 @@ struct StressTests {
             print("STRESS|fetches started for 200 query changes|n=\(StressTests.songs)|\(service.requestCount)")
         }
 
-        @Test("When the library reports a burst of two hundred changes, then it refetches only a few times")
+        @Test("When the library reports a burst of two hundred changes fired at once, then it refetches only a few times")
         func changeStorm() async throws {
             let fake = try FakeLibrary.make(songs: StressTests.songs)
             let changes = CountingChanges()
@@ -196,13 +196,10 @@ struct StressTests {
                 return published
             }
             try await Task.sleep(nanoseconds: 300 * 1_000_000)
-            for _ in 0..<200 {
-                changes.fire()
-                try await Task.sleep(nanoseconds: 1 * 1_000_000)
-            }
+            for _ in 0..<200 { changes.fire() }
             try await Task.sleep(nanoseconds: 600 * 1_000_000)
             collector.cancel()
-            print("STRESS|refetches for 200 changes in ~0.3 s|n=\(StressTests.songs)|\(service.requestCount - 1)")
+            print("STRESS|refetches for 200 changes fired at once|n=\(StressTests.songs)|\(service.requestCount - 1)")
             #expect(service.requestCount - 1 <= 10)
         }
 

@@ -152,9 +152,8 @@ final class FakeMediaItem: MPMediaItem, @unchecked Sendable {
                 meter?.begin(album: albumID)
                 defer { meter?.end() }
                 guard let source = UIImage(contentsOfFile: artworkURL.path) else { return UIImage() }
-                let format = UIGraphicsImageRendererFormat()
-                format.scale = 1
-                return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+                // Default format: device scale, as MediaPlayer renders (3x on an iPhone).
+                return UIGraphicsImageRenderer(size: size).image { _ in
                     source.draw(in: CGRect(origin: .zero, size: size))
                 }
             }
