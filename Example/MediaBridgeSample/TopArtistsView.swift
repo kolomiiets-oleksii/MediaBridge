@@ -56,7 +56,9 @@ struct TopArtistsView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     NavigationStack { TopArtistsView() }
         .musicLibrary(.preview(songs: DemoSongs.all))
 }
+#endif
