@@ -75,8 +75,8 @@ extension LibraryQuery where Element == Song {
 @MediaQuery(.mostSkipped) var songs
 ```
 
-`ArtworkImage` renders and decodes artwork off the main thread, and keeps it in a memory cache. Give it your own placeholder and corner radius,
-or leave out the size to fill a grid cell:
+`ArtworkImage` renders and decodes artwork off the main thread, and keeps it in a memory cache.
+Give it your own placeholder and corner radius, or leave out the size to fill a grid cell:
 
 ```swift
 ArtworkImage(song, size: 48, cornerRadius: 4)
