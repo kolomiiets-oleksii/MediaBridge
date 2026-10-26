@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `NowPlaying.Status` is now `@MainActor` and reads from the loader, so the playback state it shows can't go stale.
 
-## [1.4.0] - 2026-10-11
+## [1.4.0] - 2026-10-27
 
 ### Added
 - `library.results(_:coalescing:)`, an `AsyncStream<Result<[Element], MusicLibraryError>>` of a query's results: once now, then after each library change. It is what `@MediaQuery` runs on, for `@Observable` models, view controllers and tests. A failed fetch arrives as a `.failure` and the stream keeps going; a burst of changes causes one refetch.
