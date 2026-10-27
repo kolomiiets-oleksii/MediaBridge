@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.8.0] - 2026-10-27
 
 ### Changed
-- Sorting by a string, such as `.sorted(by: \.title)` or `.then(by: \.artist)`, is alphabetical like the Music app and the A–Z sections: case doesn't matter, numbers compare by value ("Track 2" before "Track 10"), and the user's locale decides the rest. It used to compare code points, so "apple" came after "Zebra". Each string is still read once per element.
+- Sorting by a string, such as `.sorted(by: \.title)`, is alphabetical like the Music app: case doesn't matter and numbers compare by value ("Track 2" before "Track 10"). It used to put "apple" after "Zebra".
+- String sorts follow the user's locale, as the A–Z sections do, and each string is still read once per element.
 
 ## [1.7.1] - 2026-10-27
 
@@ -59,7 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.4.0] - 2026-10-27
 
 ### Added
-- `library.results(_:coalescing:)`, an `AsyncStream<Result<[Element], MusicLibraryError>>` of a query's results: once now, then after each library change. It is what `@MediaQuery` runs on, for `@Observable` models, view controllers and tests. A failed fetch arrives as a `.failure` and the stream keeps going; a burst of changes causes one refetch.
+- `library.results(_:)` streams a query's results: once now, then after every library change, so `@Observable` models, view controllers and tests stay current the way `@MediaQuery` does.
+- A failed fetch arrives in that stream as `.failure` and the stream keeps going; a burst of library changes causes one refetch.
 - `mediaPicker(isPresented:)` takes `showsCloudItems:` and `showsItemsWithProtectedAssets:`, which it used to leave at their defaults.
 
 ### Changed
