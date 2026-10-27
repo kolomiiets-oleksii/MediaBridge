@@ -80,7 +80,7 @@ let adele = try await library.fetch(.albums.filter(\.artist == "Adele"))
 let sections = try await library.sections(.artists)   // A–Z, like the Music app
 ```
 
-`==` on a property MediaPlayer can filter and `.contains` run inside MediaPlayer's query; every other condition runs in memory. Sorting reads each key once per element.
+`==` on a property MediaPlayer can filter and `.contains` run inside MediaPlayer's query; every other condition runs in memory. Sorting reads each key once per element, and strings sort alphabetically like the Music app: case doesn't matter and numbers compare by value.
 
 Combine conditions with `&&`, `||` and `!`, and use `.hasPrefix` and `.isIn` for strings and sets:
 

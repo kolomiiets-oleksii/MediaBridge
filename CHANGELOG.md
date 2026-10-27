@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-10-27
+
+### Changed
+- Sorting by a string, such as `.sorted(by: \.title)` or `.then(by: \.artist)`, is alphabetical like the Music app and the A–Z sections: case doesn't matter, numbers compare by value ("Track 2" before "Track 10"), and the user's locale decides the rest. It used to compare code points, so "apple" came after "Zebra". Each string is still read once per element.
+
 ## [1.7.1] - 2026-10-27
 
 ### Changed

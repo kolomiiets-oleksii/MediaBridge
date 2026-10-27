@@ -116,6 +116,38 @@ public struct LibraryQuery<Element: LibraryElement>: Sendable, Equatable {
         return copy
     }
 
+    /// Orders results alphabetically by `keyPath`, replacing any previous ordering. Like the Music
+    /// app and the A–Z sections: case doesn't matter, numbers compare by value ("Track 2" before
+    /// "Track 10"), and the user's locale decides the rest.
+    public func sorted(by keyPath: KeyPath<Element, String> & Sendable, _ order: SortOrder = .forward) -> Self {
+        var copy = self
+        copy.orderings = [Self.ordering(keyPath, { AlphabeticalKey($0[keyPath: keyPath]) }, order)]
+        return copy
+    }
+
+    /// Breaks ties in the current ordering alphabetically by `keyPath`.
+    public func then(by keyPath: KeyPath<Element, String> & Sendable, _ order: SortOrder = .forward) -> Self {
+        var copy = self
+        copy.orderings.append(Self.ordering(keyPath, { AlphabeticalKey($0[keyPath: keyPath]) }, order))
+        return copy
+    }
+
+    /// Orders results alphabetically by an optional `keyPath`, replacing any previous ordering, the
+    /// same way as a non-optional string. Missing values sort first in `.forward` order.
+    public func sorted(by keyPath: KeyPath<Element, String?> & Sendable, _ order: SortOrder = .forward) -> Self {
+        var copy = self
+        copy.orderings = [Self.ordering(keyPath, { $0[keyPath: keyPath].map(AlphabeticalKey.init).nilFirst }, order)]
+        return copy
+    }
+
+    /// Breaks ties in the current ordering alphabetically by an optional `keyPath`. Missing values
+    /// sort first in `.forward` order.
+    public func then(by keyPath: KeyPath<Element, String?> & Sendable, _ order: SortOrder = .forward) -> Self {
+        var copy = self
+        copy.orderings.append(Self.ordering(keyPath, { $0[keyPath: keyPath].map(AlphabeticalKey.init).nilFirst }, order))
+        return copy
+    }
+
     /// Returns at most `count` elements, after filtering and sorting.
     public func limit(_ count: Int) -> Self {
         var copy = self
@@ -225,4 +257,20 @@ extension Optional where Wrapped: Comparable & Sendable {
 
 extension Bool {
     var sortRank: Int { self ? 1 : 0 }
+}
+
+struct AlphabeticalKey: Comparable, Sendable {
+    let value: String
+
+    init(_ value: String) {
+        self.value = value
+    }
+
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        lhs.value.localizedStandardCompare(rhs.value) == .orderedAscending
+    }
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.value.localizedStandardCompare(rhs.value) == .orderedSame
+    }
 }
