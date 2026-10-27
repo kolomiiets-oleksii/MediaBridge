@@ -87,7 +87,7 @@ struct StressTests {
                 perElement.append(reads / Double(n))
                 print("STRESS|sort(title) property reads per song|n=\(n)|\(String(format: "%.2f", reads / Double(n)))")
                 #expect(sorted.count == n)
-                #expect(sorted.map(\.title).isSorted)
+                #expect(sorted.map(\.title).isAlphabetical)
             }
             #expect(perElement.allSatisfy { $0 <= 2 }, "reads per song \(perElement): sorting re-reads properties per comparison")
             #expect(perElement[1] <= perElement[0] * 1.2, "reads per song grow with n: \(perElement)")
@@ -310,5 +310,7 @@ extension Array where Element: Comparable {
 }
 
 extension Array where Element == String? {
-    var isSorted: Bool { zip(self, dropFirst()).allSatisfy { ($0 ?? "") <= ($1 ?? "") } }
+    var isAlphabetical: Bool {
+        zip(self, dropFirst()).allSatisfy { ($0 ?? "").localizedStandardCompare($1 ?? "") != .orderedDescending }
+    }
 }
