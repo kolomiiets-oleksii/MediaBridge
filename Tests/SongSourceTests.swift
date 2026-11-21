@@ -81,5 +81,19 @@ struct SongSourceTests {
             #expect(Song.predicate(for: \Song.source, value: SongSource.ownFile) == nil)
             #expect(Song.predicate(for: \Song.playbackStoreID, value: "0") == nil)
         }
+
+        @Test("When a query filters on source, then only matching songs come back")
+        func query() async throws {
+            let items = [
+                StubMediaItem([MPMediaItemPropertyTitle: "Hello", MPMediaItemPropertyPlaybackStoreID: "1440839718",
+                               MPMediaItemPropertyHasProtectedAsset: NSNumber(value: true)]),
+                StubMediaItem([MPMediaItemPropertyTitle: "Garage Demo"]),
+                StubMediaItem([MPMediaItemPropertyTitle: "Bought", MPMediaItemPropertyPlaybackStoreID: "1"]),
+            ]
+
+            let own = try await MusicLibrary.preview(songs: items).fetch(.songs.filter(\.source == .ownFile))
+
+            #expect(own.map(\.title) == ["Garage Demo"])
+        }
     }
 }
