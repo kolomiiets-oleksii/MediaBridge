@@ -5,7 +5,7 @@ All notable changes to MediaBridge are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.9.0] - 2026-11-21
 
 ### Added
 - `Song.source` and `SongSource` (`.appleMusic`, `.purchased`, `.ownFile`), to tell a user's own files apart from Apple Music and iTunes Store songs. It is inferred from `playbackStoreID` and `hasProtectedAsset`; the DocC page lists the rules and where they can be wrong, such as iTunes Match matches. `.filter(\.source == .ownFile)` runs in memory, since MediaPlayer can't filter on the store ID.
