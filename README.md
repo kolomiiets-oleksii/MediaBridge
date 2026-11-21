@@ -120,6 +120,16 @@ let topArtists = try await library.grouped(.songs, by: \.artist)
 
 `&&` stays inside MediaPlayer's query where it can; `||` and `!` run in memory.
 
+Tell a user's own files (MP3s synced from a Mac, uploads with no catalog ID) apart from Apple
+Music and iTunes Store songs:
+
+```swift
+let ownFiles = try await library.fetch(.songs.filter(\.source == .ownFile))   // runs in memory
+```
+
+`source` is inferred from the store ID and the protected-asset flag; `SongSource` documents
+where that can be wrong, such as iTunes Match matches.
+
 MediaPlayer keeps only lifetime play counts. For "plays this month", record them over time
 (counting starts at the first record):
 
