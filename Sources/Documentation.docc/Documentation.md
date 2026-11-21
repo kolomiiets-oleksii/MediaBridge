@@ -93,6 +93,17 @@ let some = try await library.fetch(.songs.filter(\.genre, .isIn(["Jazz", "Blues"
 
 `&&` keeps each side inside MediaPlayer's query when it can. MediaPlayer can't express "or" or "not", so a query that uses them fetches everything the rest of the query allows and tests those in memory.
 
+### Own Files and Other Media
+
+``Song/source`` tells a user's own files apart from Apple Music and iTunes Store songs, and ``Song/mediaType`` splits a fetch across media types. MediaPlayer can't filter on the store ID, so the source filter runs in memory; see ``SongSource`` for the rules and where they can be wrong.
+
+```swift
+let ownFiles = try await library.fetch(.songs.filter(\.source == .ownFile))
+
+let everything = try await library.fetch(.songs.mediaType(nil))
+let videos = everything.filter { $0.mediaType.contains(.anyVideo) }
+```
+
 ### Podcasts and Audiobooks
 
 `.episodes` and `.books` fetch ``Episode``s and ``Audiobook``s, which know where someone stopped. `.podcastEpisodes` and `.audiobooks` still fetch the same media as ``Song``s.
@@ -297,6 +308,7 @@ let library = MusicLibrary(service: FixtureService(songs: fixtures))
 
 ### Models
 - ``Song``
+- ``SongSource``
 - ``Album``
 - ``Artist``
 - ``Genre``

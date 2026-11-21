@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `Song.source` and `SongSource` (`.appleMusic`, `.purchased`, `.ownFile`), to tell a user's own files apart from Apple Music and iTunes Store songs. It is inferred from `playbackStoreID` and `hasProtectedAsset`; the DocC page lists the rules and where they can be wrong, such as iTunes Match matches. `.filter(\.source == .ownFile)` runs in memory, since MediaPlayer can't filter on the store ID.
+- The sample app's `-demoLibrary` has Apple Music songs and one own file without artwork.
+
+### Notes
+- `Song.mediaType` and `Song.assetURL`, also asked for in #70, have been available since 1.7.0.
+
 ## [1.8.0] - 2026-10-27
 
 ### Changed
