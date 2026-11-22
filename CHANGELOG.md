@@ -5,10 +5,6 @@ All notable changes to MediaBridge are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.9.3] - 2026-11-22
-### Fixed
-- `ArtworkCache` cached the image MediaPlayer returned at whatever size it came back. On an iPhone 12 Pro, a 128 pt request returned a 1170 px image (5.5 MB), so the 96 MB limit held about 17 cells and scrolling back re-rendered most of them. Artwork is now scaled down to the requested size at the display scale before it is cached, and images are costed by their real pixel size. This does not reduce MediaPlayer's own memory use while scrolling a large library (about 1 GB for 750 albums on that device); that is tracked in #80.
-
 ## [1.9.2] - 2026-11-22
 ### Fixed
 - `ArtworkImage` could freeze every `await` in an app on a device. Since 1.4.0 each artwork rendered through `MPMediaItemArtwork.image(at:)` inside `Task.detached`, and that call blocks its thread (`dispatch_sync` onto MediaPlayer's own queue). A screenful of artwork blocked the whole Swift Concurrency pool, so `Task.sleep`, `await`s and `.task`s stopped resuming (an iPhone 12 Pro with 2,125 songs never got past its launch screen). The blocking call now runs on one serial queue of its own, which loses no throughput, since MediaPlayer serializes the requests anyway; the decode for display stays asynchronous.
