@@ -7,7 +7,7 @@
     /// MediaPlayer caches the image itself, but not decoded for display and not per cell, so
     /// without this a `LazyVGrid` row scrolled away and back decodes its artwork again.
     final class ArtworkCache: @unchecked Sendable {
-        static let shared = ArtworkCache()
+        static let shared = ArtworkCache(disk: .live())
 
         // NSCache is thread-safe, and evicts on memory pressure by itself.
         private let cache = NSCache<NSString, UIImage>()
@@ -20,14 +20,17 @@
         init(
             countLimit: Int = 1_500, byteLimit: Int = 96 * 1024 * 1024,
             minimumHeadroom: Int = 512 * 1024 * 1024,
-            headroom: @escaping @Sendable () -> Int = ArtworkCache.availableMemory
+            headroom: @escaping @Sendable () -> Int = ArtworkCache.availableMemory,
+            disk: ArtworkDisk = .none
         ) {
             cache.countLimit = countLimit
             cache.totalCostLimit = byteLimit
             self.minimumHeadroom = minimumHeadroom
             self.headroom = headroom
+            self.disk = disk
         }
 
+        private let disk: ArtworkDisk
         private let minimumHeadroom: Int
         private let headroom: @Sendable () -> Int
         /// Items MediaPlayer already rendered in this process: it answers those from what it holds.
@@ -90,6 +93,10 @@
                 let flight = Flight()
                 flights[key] = flight
                 flight.task = Task.detached(priority: .userInitiated) { [self] () -> UIImage? in
+                    // An album stored on disk never reaches MediaPlayer, so it costs no headroom.
+                    if let stored = disk.load(request), let image = await stored.byPreparingForDisplay() {
+                        return finish(key, flight, image, request, save: false)
+                    }
                     let image = await Self.renderOffPool(
                         size, with: render, isCancelled: { [lock] in lock.withLock { flight.isCancelled } },
                         mayRender: { [self] in mayRender(request.id) })
@@ -138,8 +145,13 @@
         private let lock = NSLock()
         private var flights: [String: Flight] = [:]
 
-        private func finish(_ key: String, _ flight: Flight, _ image: UIImage?, _ request: ArtworkRequest) -> UIImage? {
-            if let image { insert(image, for: request) }
+        private func finish(
+            _ key: String, _ flight: Flight, _ image: UIImage?, _ request: ArtworkRequest, save: Bool = true
+        ) -> UIImage? {
+            if let image {
+                insert(image, for: request)
+                if save { disk.save(image, request) }
+            }
             lock.withLock { if flights[key] === flight { flights[key] = nil } }
             return image
         }
