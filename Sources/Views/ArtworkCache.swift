@@ -29,8 +29,11 @@
 
         /// Renders `request` off the main actor, and caches the result.
         ///
-        /// `render` is MediaPlayer's `MPMediaItemArtwork.image(at:)` call, so it runs on a
-        /// background thread here, followed by the decode for display. Callers asking for the
+        /// `render` is MediaPlayer's `MPMediaItemArtwork.image(at:)` call. It blocks its thread
+        /// (`dispatch_sync` onto MediaPlayer's own serial queue), so it runs on `renderQueue`, never on
+        /// the Swift Concurrency pool: a screenful of artwork blocking one pool thread each would use
+        /// the whole pool up and freeze every other `await` in the app. The decode for display follows,
+        /// off that queue. Callers asking for the
         /// same request while it renders share that one render. Cancelling a caller cancels the
         /// work, if it hasn't started, only once every caller has cancelled.
         func render(
@@ -39,10 +42,7 @@
             let size = CGSize(width: request.side, height: request.side)
             guard let key = Self.key(for: request).map({ $0 as String }) else {
                 // No persistent ID, so nothing to share or cache.
-                return await Task.detached(priority: .userInitiated) { () -> UIImage? in
-                    guard !Task.isCancelled else { return nil }
-                    return await render(size)?.byPreparingForDisplay()
-                }.value
+                return await Self.renderOffPool(size, with: render, isCancelled: { false })
             }
 
             let flight = lock.withLock { () -> Flight in
@@ -53,8 +53,8 @@
                 let flight = Flight()
                 flights[key] = flight
                 flight.task = Task.detached(priority: .userInitiated) { [self] () -> UIImage? in
-                    guard !Task.isCancelled else { return finish(key, flight, nil, request) }
-                    let image = await render(size)?.byPreparingForDisplay()
+                    let image = await Self.renderOffPool(
+                        size, with: render, isCancelled: { [lock] in lock.withLock { flight.isCancelled } })
                     return finish(key, flight, image, request)
                 }
                 return flight
@@ -65,6 +65,7 @@
                 lock.withLock {
                     flight.waiters -= 1
                     if flight.waiters == 0 {
+                        flight.isCancelled = true
                         flight.task.cancel()
                         if flights[key] === flight { flights[key] = nil }
                     }
@@ -75,6 +76,25 @@
         private final class Flight: @unchecked Sendable {
             var task: Task<UIImage?, Never>!
             var waiters = 1
+            /// Set under the cache's lock once every caller has cancelled.
+            var isCancelled = false
+        }
+
+        /// MediaPlayer serializes artwork requests on its own queue, so one queue loses no throughput.
+        private static let renderQueue = DispatchQueue(label: "MediaBridge.ArtworkCache.render", qos: .userInitiated)
+
+        /// Runs the blocking `render` on `renderQueue`, skipping it if the caller gave up while it
+        /// waited its turn, then decodes the image for display.
+        private static func renderOffPool(
+            _ size: CGSize, with render: @escaping @Sendable (CGSize) -> UIImage?,
+            isCancelled: @escaping @Sendable () -> Bool
+        ) async -> UIImage? {
+            let rendered = await withCheckedContinuation { (continuation: CheckedContinuation<UIImage?, Never>) in
+                renderQueue.async {
+                    continuation.resume(returning: isCancelled() ? nil : render(size))
+                }
+            }
+            return await rendered?.byPreparingForDisplay()
         }
 
         private let lock = NSLock()
