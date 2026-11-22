@@ -5,6 +5,10 @@ All notable changes to MediaBridge are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.2] - 2026-11-22
+### Fixed
+- `ArtworkImage` could freeze every `await` in an app on a device. Since 1.4.0 each artwork rendered through `MPMediaItemArtwork.image(at:)` inside `Task.detached`, and that call blocks its thread (`dispatch_sync` onto MediaPlayer's own queue). A screenful of artwork blocked the whole Swift Concurrency pool, so `Task.sleep`, `await`s and `.task`s stopped resuming (an iPhone 12 Pro with 2,125 songs never got past its launch screen). The blocking call now runs on one serial queue of its own, which loses no throughput, since MediaPlayer serializes the requests anyway; the decode for display stays asynchronous.
+
 ## [1.9.1] - 2026-11-22
 ### Fixed
 - `@NowPlaying` could stay `nil` while music played. Since 1.5.0 it set the player, and published the song, playback state and an empty queue, during SwiftUI's view update ("Publishing changes from within view updates is not allowed"), and SwiftUI could drop the change. It now switches players on the next main-actor turn.
