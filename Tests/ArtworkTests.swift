@@ -252,6 +252,49 @@ struct ArtworkTests {
             #expect(renders.value == 1)
         }
 
+        @Test("When memory headroom is below the floor, then an item not rendered before is skipped")
+        func belowFloor() async {
+            let headroom = Headroom(100)
+            let cache = ArtworkCache(minimumHeadroom: 500, headroom: { headroom.value })
+            let renders = Counter()
+
+            let image = await cache.render(Self.request) { _ in
+                renders.increment()
+                return Self.image()
+            }
+
+            #expect(image == nil)
+            #expect(renders.value == 0)
+            #expect(cache.image(for: Self.request) == nil)
+        }
+
+        @Test("When headroom is back above the floor, then the item renders")
+        func aboveFloorAgain() async {
+            let headroom = Headroom(100)
+            let cache = ArtworkCache(minimumHeadroom: 500, headroom: { headroom.value })
+
+            _ = await cache.render(Self.request) { _ in Self.image() }
+            headroom.value = 500
+            let image = await cache.render(Self.request) { _ in Self.image() }
+
+            #expect(image != nil)
+        }
+
+        @Test("When an item was rendered before, then it still renders below the floor")
+        func knownItem() async {
+            let headroom = Headroom(1_000)
+            let cache = ArtworkCache(minimumHeadroom: 500, headroom: { headroom.value })
+            let other = ArtworkRequest(id: ArtworkKey(kind: .song, id: 8), side: 100)
+
+            _ = await cache.render(Self.request) { _ in Self.image() }
+            headroom.value = 100
+            let again = await cache.render(Self.request) { _ in Self.image() }
+            let new = await cache.render(other) { _ in Self.image() }
+
+            #expect(again != nil)
+            #expect(new == nil)
+        }
+
         @Test("When there is no artwork, then nothing is cached")
         func none() async {
             let cache = ArtworkCache()
@@ -274,5 +317,16 @@ struct ArtworkTests {
         func missing() {
             #expect(Song(StubMediaItem([:])).artwork(size: CGSize(width: 44, height: 44)) == nil)
         }
+    }
+}
+
+/// A headroom reading the test changes while the cache runs.
+private final class Headroom: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: Int
+    init(_ value: Int) { stored = value }
+    var value: Int {
+        get { lock.withLock { stored } }
+        set { lock.withLock { stored = newValue } }
     }
 }
