@@ -38,6 +38,10 @@ final class NowPlayingLoader: ObservableObject {
         self.maximumQueueGap = maximumQueueGap
     }
 
+    func isObserving(_ player: any MusicPlayerProtocol) -> Bool {
+        player === self.player
+    }
+
     func update(player: any MusicPlayerProtocol) {
         guard player !== self.player else { return }
         observation = nil

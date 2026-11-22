@@ -55,7 +55,14 @@ public struct NowPlaying: @preconcurrency DynamicProperty {
     }
 
     public func update() {
-        loader.update(player: player)
+        let player = player
+        guard !loader.isObserving(player) else { return }
+        // Setting the player publishes the current song, playback state and queue. SwiftUI calls
+        // `update()` during a view update, where publishing is undefined behaviour and the change
+        // can be lost (a now-playing bar that never appears), so the switch waits a turn.
+        Task { @MainActor [loader] in
+            loader.update(player: player)
+        }
     }
 
     /// The playback state of a ``NowPlaying`` song, and controls that keep it current.
