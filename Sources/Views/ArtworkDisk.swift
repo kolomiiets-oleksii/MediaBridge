@@ -19,8 +19,8 @@
         static func live(
             directory: URL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("MediaBridge/Artwork", isDirectory: true),
-            byteLimit: Int = 64 * 1024 * 1024,
-            pendingByteLimit: Int = 24 * 1024 * 1024
+            byteLimit: Int = 64 << 20,
+            pendingByteLimit: Int = 24 << 20
         ) -> ArtworkDisk {
             let store = FileStore(directory: directory, byteLimit: byteLimit, pendingByteLimit: pendingByteLimit)
             return ArtworkDisk(load: { store.load($0) }, save: { store.save($0, for: $1) })
@@ -58,7 +58,8 @@
             let target = url(for: request)
             // Over the limit the image is dropped, not kept waiting: it is saved the next time the
             // album renders in a later launch.
-            let cost = Int(image.size.width * image.scale * image.size.height * image.scale * 4)
+            // 4 bytes a pixel.
+            let cost = Int(image.size.width * image.scale * image.size.height * image.scale) << 2
             let accepted = lock.withLock { () -> Bool in
                 guard pendingBytes + cost <= pendingByteLimit else { return false }
                 pendingBytes += cost
