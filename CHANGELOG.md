@@ -5,9 +5,13 @@ All notable changes to MediaBridge are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.9.3] - 2026-11-22
+## [1.10.0] - 2026-11-22
+### Added
+- `ArtworkImage` keeps the artwork it rendered on disk (Caches directory, JPEG thumbnails up to 3x the requested size, 64 MB, oldest removed first). An album stored there is not rendered through MediaPlayer again after a relaunch, so it costs no memory headroom and shows even below the floor described under Fixed. On an iPhone 12 Pro with 753 albums the peak footprint of a scroll went from 1,303 MB on a first launch to 781 MB once the disk was filled. The system may empty the Caches directory; the artwork is then rendered again.
+
 ### Fixed
 - `ArtworkImage` could push an app past its memory limit on a device. MediaPlayer keeps about 1.3 to 2 MB for every distinct album rendered through `MPMediaItemArtwork.image(at:)`, whatever size is asked for, and never releases it (1,007 MB after 753 albums on an iPhone 12 Pro), so a large library scrolled in a grid could be terminated. An album not rendered before in the process is now only rendered while at least 512 MB remain before the limit (`os_proc_available_memory`); below that it shows the placeholder, and is asked again when its view next appears. Albums already rendered keep rendering. Nothing changes for libraries that stay above the floor.
+- Writing artwork to disk could hold every full-size image waiting to be written (2.3 GB peak on an iPhone 12 Pro in a pre-release build). At most 24 MB of images wait; an image over that is saved the next time its album renders.
 
 ## [1.9.2] - 2026-11-22
 ### Fixed
