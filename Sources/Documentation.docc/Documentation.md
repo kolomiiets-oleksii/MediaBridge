@@ -93,6 +93,19 @@ let some = try await library.fetch(.songs.filter(\.genre, .isIn(["Jazz", "Blues"
 
 `&&` keeps each side inside MediaPlayer's query when it can. MediaPlayer can't express "or" or "not", so a query that uses them fetches everything the rest of the query allows and tests those in memory.
 
+What runs where:
+
+| Condition | Where it runs |
+|---|---|
+| `==` on a property MediaPlayer can filter, such as `isCloudItem` or `artist` | Inside MediaPlayer's query |
+| `.contains` on a string | Inside MediaPlayer's query |
+| `&&` of two conditions | Each side where it would run alone |
+| `<`, `>`, `<=`, `>=`, `!=`, `.hasPrefix`, `.isIn` | In memory |
+| `\|\|` and `!` | In memory |
+| `Song.source` | In memory |
+
+A condition that runs in memory tests every item the rest of the query returns. MediaBridge also writes a debug-level log message (category `MediaBridge`) with how many filters ran in memory over how many items.
+
 ### Own Files and Other Media
 
 ``Song/source`` tells a user's own files apart from Apple Music and iTunes Store songs, and ``Song/mediaType`` splits a fetch across media types. MediaPlayer can't filter on the store ID, so the source filter runs in memory; see ``SongSource`` for the rules and where they can be wrong.

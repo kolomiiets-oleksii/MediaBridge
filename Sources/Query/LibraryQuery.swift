@@ -182,6 +182,9 @@ public struct LibraryQuery<Element: LibraryElement>: Sendable, Equatable {
 
     func refine(_ fetched: [Element], applyingLimit: Bool = true) -> [Element] {
         let localTests = clauses.filter { $0.filter == nil }.map(\.test)
+        if !localTests.isEmpty {
+            log.debug("\(Element.self): \(localTests.count) filter(s) run in memory over \(fetched.count) fetched items")
+        }
         var elements = localTests.isEmpty ? fetched : fetched.filter { element in localTests.allSatisfy { $0(element) } }
         if !orderings.isEmpty {
             let comparators = orderings.map { $0.keys(elements) }
