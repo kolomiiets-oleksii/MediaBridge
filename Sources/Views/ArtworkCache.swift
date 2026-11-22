@@ -1,5 +1,6 @@
 #if canImport(UIKit)
     import UIKit
+    import os
 
     /// Decoded artwork, kept in memory by persistent ID and rendered size.
     ///
@@ -11,9 +12,41 @@
         // NSCache is thread-safe, and evicts on memory pressure by itself.
         private let cache = NSCache<NSString, UIImage>()
 
-        init(countLimit: Int = 1_500, byteLimit: Int = 96 * 1024 * 1024) {
+        /// MediaPlayer keeps memory for every distinct album it renders (about 1.3 to 2 MB each on a
+        /// device), never gives it back, and doesn't release it under memory pressure. So an album not
+        /// rendered before is only rendered while the app has at least `minimumHeadroom` bytes left
+        /// before the system would terminate it (`os_proc_available_memory`). Below that it gets no
+        /// artwork, and is asked again the next time its view appears.
+        init(
+            countLimit: Int = 1_500, byteLimit: Int = 96 * 1024 * 1024,
+            minimumHeadroom: Int = 512 * 1024 * 1024,
+            headroom: @escaping @Sendable () -> Int = ArtworkCache.availableMemory
+        ) {
             cache.countLimit = countLimit
             cache.totalCostLimit = byteLimit
+            self.minimumHeadroom = minimumHeadroom
+            self.headroom = headroom
+        }
+
+        private let minimumHeadroom: Int
+        private let headroom: @Sendable () -> Int
+        /// Items MediaPlayer already rendered in this process: it answers those from what it holds.
+        private var rendered: Set<String> = []
+
+        /// Bytes the app can still allocate. The simulator reports 0, which means "unknown".
+        @Sendable static func availableMemory() -> Int {
+            let bytes = Int(clamping: os_proc_available_memory())
+            return bytes == 0 ? .max : bytes
+        }
+
+        private func mayRender(_ id: ArtworkKey) -> Bool {
+            let item = "\(id.kind)-\(id.id)"
+            return lock.withLock {
+                if rendered.contains(item) { return true }
+                guard headroom() >= minimumHeadroom else { return false }
+                rendered.insert(item)
+                return true
+            }
         }
 
         func image(for request: ArtworkRequest) -> UIImage? {
@@ -42,7 +75,7 @@
             let size = CGSize(width: request.side, height: request.side)
             guard let key = Self.key(for: request).map({ $0 as String }) else {
                 // No persistent ID, so nothing to share or cache.
-                return await Self.renderOffPool(size, with: render, isCancelled: { false })
+                return await Self.renderOffPool(size, with: render, isCancelled: { false }, mayRender: { true })
             }
 
             let flight = lock.withLock { () -> Flight in
@@ -54,7 +87,8 @@
                 flights[key] = flight
                 flight.task = Task.detached(priority: .userInitiated) { [self] () -> UIImage? in
                     let image = await Self.renderOffPool(
-                        size, with: render, isCancelled: { [lock] in lock.withLock { flight.isCancelled } })
+                        size, with: render, isCancelled: { [lock] in lock.withLock { flight.isCancelled } },
+                        mayRender: { [self] in mayRender(request.id) })
                     return finish(key, flight, image, request)
                 }
                 return flight
@@ -84,14 +118,14 @@
         private static let renderQueue = DispatchQueue(label: "MediaBridge.ArtworkCache.render", qos: .userInitiated)
 
         /// Runs the blocking `render` on `renderQueue`, skipping it if the caller gave up while it
-        /// waited its turn, then decodes the image for display.
+        /// waited its turn or the app is short of memory, then decodes the image for display.
         private static func renderOffPool(
             _ size: CGSize, with render: @escaping @Sendable (CGSize) -> UIImage?,
-            isCancelled: @escaping @Sendable () -> Bool
+            isCancelled: @escaping @Sendable () -> Bool, mayRender: @escaping @Sendable () -> Bool
         ) async -> UIImage? {
             let rendered = await withCheckedContinuation { (continuation: CheckedContinuation<UIImage?, Never>) in
                 renderQueue.async {
-                    continuation.resume(returning: isCancelled() ? nil : render(size))
+                    continuation.resume(returning: isCancelled() || !mayRender() ? nil : render(size))
                 }
             }
             return await rendered?.byPreparingForDisplay()
