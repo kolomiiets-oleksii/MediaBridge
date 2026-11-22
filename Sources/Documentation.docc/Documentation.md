@@ -298,6 +298,16 @@ let library = MusicLibrary(service: FixtureService(songs: fixtures))
 
 ``MusicLibraryProtocol/items(_:)`` and ``MusicLibraryProtocol/collections(_:)`` run a request directly and return MediaPlayer's own types, for anything the typed queries don't cover.
 
+### Upgrading from 1.3
+
+No API was removed between 1.3 and 1.9, but check these when upgrading:
+
+- **Element properties read MediaPlayer on every call, with no cache.** ``Song/source``, `playCount`, `title` and the rest each call `value(forProperty:)` on the `MPMediaItem`. Working one out for every song on the main actor, such as `songs.filter { $0.source == .ownFile }` in a `didSet` on an `@Observable` array, blocks the main thread on a real library. One app froze at launch this way: artwork and the now-playing state stopped updating. The simulator's small library never showed it. Work such values out once per fetch, in a detached task, and keep them out of the launch path. A query filter such as `.filter(\.source == .ownFile)` reads the same properties, but `fetch` runs it off the main actor, so prefer it to filtering fetched results on the main actor.
+- **String sorts changed order (1.8.0).** `.sorted(by: \.title)` is now alphabetical like the Music app (case-insensitive, numbers by value, the user's locale). Lists and tests that expected the old order change.
+- **``MediaQuery`` keeps its rows while it refetches (1.4.0).** `isLoading` is true only until the first result and during `reload()`. Don't use it to detect a library change.
+- **``NowPlaying/Status`` is `@MainActor` (1.5.0).** Read it from the main actor.
+- **``ArtworkImage`` renders off the main thread (1.4.0)** and caches by persistent ID. There's nothing to change, but artwork of items without a persistent ID, such as test doubles, isn't cached.
+
 ## Topics
 
 ### SwiftUI
