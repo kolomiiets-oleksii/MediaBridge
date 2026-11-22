@@ -216,6 +216,24 @@ struct ArtworkDiskTests {
             #expect(saved.count < 20)
         }
 
+        @Test("When a stored image is older than the maximum age, then it is removed and load returns nothing")
+        func expires() async throws {
+            let directory = Self.temporaryDirectory()
+            defer { try? FileManager.default.removeItem(at: directory) }
+            let day: TimeInterval = 24 * 60 * 60
+            let written = Date()
+            let request = ArtworkDiskTests.request(7)
+            ArtworkDisk.live(directory: directory).save(Self.image(side: 64), request)
+            _ = await Self.waitForLoad(ArtworkDisk.live(directory: directory), request)
+
+            let young = ArtworkDisk.live(directory: directory, maxAge: 30 * day, now: { written.addingTimeInterval(29 * day) })
+            #expect(young.load(request) != nil)
+
+            let old = ArtworkDisk.live(directory: directory, maxAge: 30 * day, now: { written.addingTimeInterval(31 * day) })
+            #expect(old.load(request) == nil)
+            #expect(ArtworkDisk.live(directory: directory).load(request) == nil)
+        }
+
         @Test("When the folder passes its byte limit, then the oldest file goes first")
         func trims() async throws {
             let directory = Self.temporaryDirectory()

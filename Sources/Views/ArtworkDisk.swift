@@ -15,14 +15,20 @@
         static let none = ArtworkDisk(load: { _ in nil }, save: { _, _ in })
 
         /// Thumbnails as JPEG files in the Caches directory, which the system may empty when the
-        /// device is short of storage. Oldest files go first once `byteLimit` is passed.
+        /// device is short of storage. Oldest files go first once `byteLimit` is passed. A file older
+        /// than `maxAge` is removed instead of read, so artwork the user changed in the library is
+        /// rendered again within that time.
         static func live(
             directory: URL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("MediaBridge/Artwork", isDirectory: true),
             byteLimit: Int = 64 << 20,
-            pendingByteLimit: Int = 24 << 20
+            pendingByteLimit: Int = 24 << 20,
+            maxAge: TimeInterval = 30 * 24 * 60 * 60,
+            now: @escaping @Sendable () -> Date = { Date() }
         ) -> ArtworkDisk {
-            let store = FileStore(directory: directory, byteLimit: byteLimit, pendingByteLimit: pendingByteLimit)
+            let store = FileStore(
+                directory: directory, byteLimit: byteLimit, pendingByteLimit: pendingByteLimit,
+                maxAge: maxAge, now: now)
             return ArtworkDisk(load: { store.load($0) }, save: { store.save($0, for: $1) })
         }
     }
@@ -31,6 +37,8 @@
         private let directory: URL
         private let byteLimit: Int
         private let pendingByteLimit: Int
+        private let maxAge: TimeInterval
+        private let now: @Sendable () -> Date
         private let lock = NSLock()
         /// Decoded size of the images waiting for the writer. MediaPlayer hands out 1170 px images
         /// faster than they are encoded; unbounded, the waiting images were 1.2 GB on a device.
@@ -38,7 +46,12 @@
         /// One writer at a time: encoding thumbnails side by side would raise the peak footprint.
         private let queue = DispatchQueue(label: "MediaBridge.ArtworkDisk.write", qos: .utility)
 
-        init(directory: URL, byteLimit: Int, pendingByteLimit: Int) {
+        init(
+            directory: URL, byteLimit: Int, pendingByteLimit: Int, maxAge: TimeInterval,
+            now: @escaping @Sendable () -> Date
+        ) {
+            self.maxAge = maxAge
+            self.now = now
             self.directory = directory
             self.byteLimit = byteLimit
             self.pendingByteLimit = pendingByteLimit
@@ -50,7 +63,14 @@
 
         func load(_ request: ArtworkRequest) -> UIImage? {
             guard request.id.id != 0 else { return nil }
-            return UIImage(contentsOfFile: url(for: request).path)
+            let file = url(for: request)
+            if let written = try? file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate,
+                now().timeIntervalSince(written) > maxAge
+            {
+                try? FileManager.default.removeItem(at: file)
+                return nil
+            }
+            return UIImage(contentsOfFile: file.path)
         }
 
         func save(_ image: UIImage, for request: ArtworkRequest) {
