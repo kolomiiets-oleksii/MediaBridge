@@ -198,6 +198,24 @@ struct ArtworkDiskTests {
             #expect(disk.load(unidentified) == nil)
         }
 
+        @Test("When more images are waiting to be written than the pending limit allows, then the extra ones are dropped")
+        func dropsOverThePendingLimit() async throws {
+            let directory = Self.temporaryDirectory()
+            defer { try? FileManager.default.removeItem(at: directory) }
+            // One 64 px image is 16 KB decoded: room for exactly one waiting at a time.
+            let disk = ArtworkDisk.live(directory: directory, pendingByteLimit: 20_000)
+            let image = Self.image(side: 64)
+
+            for id in 1...20 { disk.save(image, ArtworkDiskTests.request(UInt64(id))) }
+            // The first one was accepted: wait for it, then for any others the writer got to.
+            _ = await Self.waitForLoad(disk, ArtworkDiskTests.request(1))
+            try await Task.sleep(nanoseconds: 300_000_000)
+
+            let saved = (1...20).filter { disk.load(ArtworkDiskTests.request(UInt64($0))) != nil }
+            #expect(saved.count >= 1)
+            #expect(saved.count < 20)
+        }
+
         @Test("When the folder passes its byte limit, then the oldest file goes first")
         func trims() async throws {
             let directory = Self.temporaryDirectory()
