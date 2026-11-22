@@ -120,6 +120,17 @@ let topArtists = try await library.grouped(.songs, by: \.artist)
 
 `&&` stays inside MediaPlayer's query where it can; `||` and `!` run in memory.
 
+| Condition | Where it runs |
+|---|---|
+| `==` on a property MediaPlayer can filter, such as `isCloudItem` or `artist` | Inside MediaPlayer's query |
+| `.contains` on a string | Inside MediaPlayer's query |
+| `&&` of two conditions | Each side where it would run alone |
+| `<`, `>`, `<=`, `>=`, `!=`, `.hasPrefix`, `.isIn` | In memory |
+| `\|\|` and `!` | In memory |
+| `Song.source` | In memory |
+
+A condition that runs in memory tests every item the rest of the query returns. MediaBridge also writes a debug-level log message (category `MediaBridge`) with how many filters ran in memory over how many items.
+
 Tell a user's own files (MP3s synced from a Mac, uploads with no catalog ID) apart from Apple
 Music and iTunes Store songs:
 
