@@ -104,7 +104,7 @@
 			mainGroup = 53F9D60E2ECA155B00D200DF;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				53CB27242EDD9F87008D2303 /* XCLocalSwiftPackageReference "../../MediaBridge" */,
+				53CB27242EDD9F87008D2303 /* XCLocalSwiftPackageReference ".." */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 53F9D6182ECA155B00D200DF /* Products */;
@@ -373,9 +373,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		53CB27242EDD9F87008D2303 /* XCLocalSwiftPackageReference "../../MediaBridge" */ = {
+		53CB27242EDD9F87008D2303 /* XCLocalSwiftPackageReference ".." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../MediaBridge;
+			relativePath = ..;
 		};
 /* End XCLocalSwiftPackageReference section */
 
