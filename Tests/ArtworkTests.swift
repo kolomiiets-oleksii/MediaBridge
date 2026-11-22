@@ -252,36 +252,6 @@ struct ArtworkTests {
             #expect(renders.value == 1)
         }
 
-        @Test("When MediaPlayer returns an image larger than asked for, then the cached image is no larger than the size in pixels")
-        func scalesDown() async throws {
-            let cache = ArtworkCache()
-            let format = UIGraphicsImageRendererFormat()
-            format.scale = 1
-            let large = UIGraphicsImageRenderer(size: CGSize(width: 1_170, height: 1_170), format: format).image { context in
-                UIColor.red.setFill()
-                context.fill(CGRect(x: 0, y: 0, width: 1_170, height: 1_170))
-            }
-            let request = ArtworkRequest(id: ArtworkKey(kind: .song, id: 9), side: 128)
-
-            let image = try #require(await cache.render(request, scale: 3) { _ in large })
-
-            let pixels = ArtworkCache.pixelSize(of: image)
-            #expect(pixels.width <= 384 && pixels.height <= 384)
-            #expect(ArtworkCache.cost(of: image) <= 384 * 384 * 4)
-            #expect(cache.image(for: request) === image)
-        }
-
-        @Test("When MediaPlayer returns exactly the size asked for, then the image is kept as it is")
-        func keepsSmallImage() async throws {
-            let cache = ArtworkCache()
-            let request = ArtworkRequest(id: ArtworkKey(kind: .song, id: 10), side: 100)
-
-            let small = Self.image()
-            let image = try #require(await cache.render(request, scale: 3) { _ in small })
-
-            #expect(ArtworkCache.pixelSize(of: image) == ArtworkCache.pixelSize(of: small))
-        }
-
         @Test("When there is no artwork, then nothing is cached")
         func none() async {
             let cache = ArtworkCache()

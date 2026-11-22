@@ -166,7 +166,6 @@
         let cornerRadius: Double
         let placeholder: Placeholder
         @State private var image: UIImage?
-        @Environment(\.displayScale) private var displayScale
 
         init(
             id: ArtworkKey, render: @escaping @Sendable (CGSize) -> UIImage?, side: Double, renderSide: Double,
@@ -200,7 +199,7 @@
                     image = cached
                     return
                 }
-                let rendered = await ArtworkCache.shared.render(request, scale: displayScale, with: render)
+                let rendered = await ArtworkCache.shared.render(request, with: render)
                 guard !Task.isCancelled else { return }
                 image = rendered
             }

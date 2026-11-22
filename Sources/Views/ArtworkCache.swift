@@ -23,7 +23,8 @@
 
         func insert(_ image: UIImage, for request: ArtworkRequest) {
             guard let key = Self.key(for: request) else { return }
-            cache.setObject(image, forKey: key, cost: Self.cost(of: image))
+            let pixels = image.size.width * image.scale * image.size.height * image.scale
+            cache.setObject(image, forKey: key, cost: Int(pixels * 4))
         }
 
         /// Renders `request` off the main actor, and caches the result.
@@ -35,17 +36,13 @@
         /// off that queue. Callers asking for the
         /// same request while it renders share that one render. Cancelling a caller cancels the
         /// work, if it hasn't started, only once every caller has cancelled.
-        ///
-        /// MediaPlayer can answer with an image much larger than the size asked for (1170 px for a
-        /// 128 pt request on a device test), so the result is scaled down to `request.side` points at
-        /// `scale` pixels per point before it is cached. Otherwise one cell costs megabytes.
         func render(
-            _ request: ArtworkRequest, scale: CGFloat = 3, with render: @escaping @Sendable (CGSize) -> UIImage?
+            _ request: ArtworkRequest, with render: @escaping @Sendable (CGSize) -> UIImage?
         ) async -> UIImage? {
             let size = CGSize(width: request.side, height: request.side)
             guard let key = Self.key(for: request).map({ $0 as String }) else {
                 // No persistent ID, so nothing to share or cache.
-                return await Self.renderOffPool(size, scale: scale, with: render, isCancelled: { false })
+                return await Self.renderOffPool(size, with: render, isCancelled: { false })
             }
 
             let flight = lock.withLock { () -> Flight in
@@ -57,7 +54,7 @@
                 flights[key] = flight
                 flight.task = Task.detached(priority: .userInitiated) { [self] () -> UIImage? in
                     let image = await Self.renderOffPool(
-                        size, scale: scale, with: render, isCancelled: { [lock] in lock.withLock { flight.isCancelled } })
+                        size, with: render, isCancelled: { [lock] in lock.withLock { flight.isCancelled } })
                     return finish(key, flight, image, request)
                 }
                 return flight
@@ -89,7 +86,7 @@
         /// Runs the blocking `render` on `renderQueue`, skipping it if the caller gave up while it
         /// waited its turn, then decodes the image for display.
         private static func renderOffPool(
-            _ size: CGSize, scale: CGFloat, with render: @escaping @Sendable (CGSize) -> UIImage?,
+            _ size: CGSize, with render: @escaping @Sendable (CGSize) -> UIImage?,
             isCancelled: @escaping @Sendable () -> Bool
         ) async -> UIImage? {
             let rendered = await withCheckedContinuation { (continuation: CheckedContinuation<UIImage?, Never>) in
@@ -97,25 +94,7 @@
                     continuation.resume(returning: isCancelled() ? nil : render(size))
                 }
             }
-            guard let rendered else { return nil }
-            let target = CGSize(width: size.width * scale, height: size.height * scale)
-            if size.width > 0, Self.pixelSize(of: rendered).width > target.width {
-                // Scales down and decodes in one step; fall back to the full image if it fails.
-                // `ofSize` is in points of the image's own scale.
-                let points = CGSize(width: target.width / rendered.scale, height: target.height / rendered.scale)
-                if let thumbnail = await rendered.byPreparingThumbnail(ofSize: points) { return thumbnail }
-            }
-            return await rendered.byPreparingForDisplay()
-        }
-
-        static func pixelSize(of image: UIImage) -> CGSize {
-            if let cgImage = image.cgImage { return CGSize(width: cgImage.width, height: cgImage.height) }
-            return CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
-        }
-
-        static func cost(of image: UIImage) -> Int {
-            let pixels = pixelSize(of: image)
-            return Int(pixels.width * pixels.height * 4)
+            return await rendered?.byPreparingForDisplay()
         }
 
         private let lock = NSLock()
