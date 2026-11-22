@@ -18,8 +18,8 @@
         /// before the system would terminate it (`os_proc_available_memory`). Below that it gets no
         /// artwork, and is asked again the next time its view appears.
         init(
-            countLimit: Int = 1_500, byteLimit: Int = 96 * 1024 * 1024,
-            minimumHeadroom: Int = 512 * 1024 * 1024,
+            countLimit: Int = 1_500, byteLimit: Int = 96 << 20,
+            minimumHeadroom: Int = 512 << 20,
             headroom: @escaping @Sendable () -> Int = ArtworkCache.availableMemory,
             disk: ArtworkDisk = .none
         ) {
@@ -64,7 +64,7 @@
         func insert(_ image: UIImage, for request: ArtworkRequest) {
             guard let key = Self.key(for: request) else { return }
             let pixels = image.size.width * image.scale * image.size.height * image.scale
-            cache.setObject(image, forKey: key, cost: Int(pixels * 4))
+            cache.setObject(image, forKey: key, cost: Int(pixels) << 2)  // 4 bytes a pixel
         }
 
         /// Renders `request` off the main actor, and caches the result.

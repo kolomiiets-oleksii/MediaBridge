@@ -19,9 +19,10 @@
         static func live(
             directory: URL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("MediaBridge/Artwork", isDirectory: true),
-            byteLimit: Int = 64 * 1024 * 1024
+            byteLimit: Int = 64 << 20,
+            pendingByteLimit: Int = 24 << 20
         ) -> ArtworkDisk {
-            let store = FileStore(directory: directory, byteLimit: byteLimit)
+            let store = FileStore(directory: directory, byteLimit: byteLimit, pendingByteLimit: pendingByteLimit)
             return ArtworkDisk(load: { store.load($0) }, save: { store.save($0, for: $1) })
         }
     }
@@ -29,12 +30,18 @@
     private final class FileStore: @unchecked Sendable {
         private let directory: URL
         private let byteLimit: Int
+        private let pendingByteLimit: Int
+        private let lock = NSLock()
+        /// Decoded size of the images waiting for the writer. MediaPlayer hands out 1170 px images
+        /// faster than they are encoded; unbounded, the waiting images were 1.2 GB on a device.
+        private var pendingBytes = 0
         /// One writer at a time: encoding thumbnails side by side would raise the peak footprint.
         private let queue = DispatchQueue(label: "MediaBridge.ArtworkDisk.write", qos: .utility)
 
-        init(directory: URL, byteLimit: Int) {
+        init(directory: URL, byteLimit: Int, pendingByteLimit: Int) {
             self.directory = directory
             self.byteLimit = byteLimit
+            self.pendingByteLimit = pendingByteLimit
         }
 
         private func url(for request: ArtworkRequest) -> URL {
@@ -49,7 +56,18 @@
         func save(_ image: UIImage, for request: ArtworkRequest) {
             guard request.id.id != 0 else { return }
             let target = url(for: request)
+            // Over the limit the image is dropped, not kept waiting: it is saved the next time the
+            // album renders in a later launch.
+            // 4 bytes a pixel.
+            let cost = Int(image.size.width * image.scale * image.size.height * image.scale) << 2
+            let accepted = lock.withLock { () -> Bool in
+                guard pendingBytes + cost <= pendingByteLimit else { return false }
+                pendingBytes += cost
+                return true
+            }
+            guard accepted else { return }
             queue.async { [self] in
+                defer { lock.withLock { pendingBytes -= cost } }
                 // MediaPlayer hands back its own size (1170 px for every request on an iPhone 12 Pro),
                 // so scale to what the view shows, at up to 3x, before writing.
                 let pixels = CGFloat(request.side * 3)
