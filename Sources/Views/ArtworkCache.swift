@@ -33,10 +33,14 @@
         /// Items MediaPlayer already rendered in this process: it answers those from what it holds.
         private var rendered: Set<String> = []
 
-        /// Bytes the app can still allocate. The simulator reports 0, which means "unknown".
+        /// Bytes the app can still allocate. The simulator has no such limit and reports 0; a device
+        /// reports 0 only when none is left.
         @Sendable static func availableMemory() -> Int {
-            let bytes = Int(clamping: os_proc_available_memory())
-            return bytes == 0 ? .max : bytes
+            #if targetEnvironment(simulator)
+                return .max
+            #else
+                return Int(clamping: os_proc_available_memory())
+            #endif
         }
 
         private func mayRender(_ id: ArtworkKey) -> Bool {
