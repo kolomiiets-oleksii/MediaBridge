@@ -10,7 +10,12 @@ extension MPMusicPlayerController {
     /// ```
     @MainActor
     public func queuedSongs() async throws(MusicLibraryError) -> [Song]? {
-        guard let player = self as? MPMusicPlayerApplicationController else { return nil }
+        // `applicationMusicPlayer` can be an `MPMusicPlayerApplicationController` too, but it has no
+        // queue to report: a queue transaction on it times out ("applicationQueuePlayer ... ping did
+        // not pong") and can leave it without a now-playing item.
+        guard let player = self as? MPMusicPlayerApplicationController,
+            self !== MPMusicPlayerController.applicationMusicPlayer
+        else { return nil }
         return try await player.edit { _ in }
     }
 }

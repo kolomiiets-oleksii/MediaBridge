@@ -27,6 +27,19 @@ struct PlaybackQueueTests {
         }
     }
 
+    #if canImport(UIKit)
+        @Suite("Given the application music player")
+        @MainActor
+        struct ApplicationMusicPlayer {
+            @Test("When its queue is read, then there is none, without a queue transaction")
+            func hasNoQueue() async throws {
+                let songs = try await MPMusicPlayerController.applicationMusicPlayer.queuedSongs()
+
+                #expect(songs == nil)
+            }
+        }
+    #endif
+
     @Suite("Given a player")
     struct Queueing {
         let player = MockMusicPlayer()
