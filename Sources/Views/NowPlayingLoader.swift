@@ -24,18 +24,25 @@ final class NowPlayingLoader: ObservableObject {
     private var queueIDs: [UInt64]?
     private var queueGap: TimeInterval
     private var trailingRead: Task<Void, Never>?
+    private var seekSettle: Task<Void, Never>?
     private let baseQueueGap: TimeInterval
     private let maximumQueueGap: TimeInterval
+    private let seekSettleDelay: TimeInterval
 
     /// Reading the queue is a transaction on the player. If a transaction announced itself, each
     /// read would start the next, so reads are spaced out: at least `queueGap` apart, with the gap
     /// doubling (up to `maximumQueueGap`) each time a read finds the queue unchanged and resetting
     /// when it finds a change. A real change is read at once if the gap has passed and after it
     /// otherwise; an echo settles into one read per `maximumQueueGap`.
-    init(queueGap: TimeInterval = 0.5, maximumQueueGap: TimeInterval = 30) {
+    ///
+    /// A device player can report the time from before a seek for a moment, and a seek posts no
+    /// notification, so a seek publishes its target and reads the player again `seekSettleDelay`
+    /// seconds later.
+    init(queueGap: TimeInterval = 0.5, maximumQueueGap: TimeInterval = 30, seekSettleDelay: TimeInterval = 0.5) {
         baseQueueGap = queueGap
         self.queueGap = queueGap
         self.maximumQueueGap = maximumQueueGap
+        self.seekSettleDelay = seekSettleDelay
     }
 
     func isObserving(_ player: any MusicPlayerProtocol) -> Bool {
@@ -47,6 +54,7 @@ final class NowPlayingLoader: ObservableObject {
         observation = nil
         queueTask?.cancel()
         trailingRead?.cancel()
+        seekSettle?.cancel()
         self.player = player
         queue = []
         queueIndex = nil
@@ -61,10 +69,19 @@ final class NowPlayingLoader: ObservableObject {
     }
 
     func seek(to time: TimeInterval) {
-        if let player, let target = Self.seekTime(time, duration: player.nowPlayingItem?.playbackDuration) {
-            player.currentPlaybackTime = target
+        guard let player, let target = Self.seekTime(time, duration: player.nowPlayingItem?.playbackDuration) else {
+            return refreshPlayback()
         }
+        player.currentPlaybackTime = target
         refreshPlayback()
+        position = PlaybackPosition(time: target, rate: position.rate)
+        seekSettle?.cancel()
+        seekSettle = Task { [weak self, seekSettleDelay] in
+            try? await Task.sleep(nanoseconds: UInt64(seekSettleDelay * 1_000_000_000))
+            guard !Task.isCancelled, let self else { return }
+            seekSettle = nil
+            refreshPlayback()
+        }
     }
 
     /// The latest seek time, in seconds, when the song's duration is unknown.
