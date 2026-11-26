@@ -5,6 +5,15 @@ All notable changes to MediaBridge are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.1] - Unreleased
+### Fixed
+- After `seek(to:)`, `@NowPlaying`'s `song.position` could jump back to the time before the seek. On a device `MPMusicPlayerController` can still report the old `currentPlaybackTime` right after a seek, and a seek posts no notification, so a progress bar snapped back. A seek now publishes its target at the player's current rate and reads the player again 0.5 s later; a newer seek cancels the pending re-read. (#98)
+- Artwork stored on disk by `ArtworkImage` was shown forever, even after the user changed an album's artwork in the library. A file older than 30 days is now removed instead of read, and the album is rendered through MediaPlayer again. (#94)
+- The sample app pointed at a `MediaBridge` folder next to the repository instead of the package it ships with, so it only built from one checkout layout. (#72)
+
+### Notes
+- README and DocC list which query conditions run inside MediaPlayer's query and which run in memory. A query with in-memory filters writes a debug-level log message (category `MediaBridge`) with how many filters ran over how many items. (#75)
+
 ## [1.10.0] - 2026-11-22
 ### Added
 - `ArtworkImage` keeps the artwork it rendered on disk (Caches directory, JPEG thumbnails up to 3x the requested size, 64 MB, oldest removed first). An album stored there is not rendered through MediaPlayer again after a relaunch, so it costs no memory headroom and shows even below the floor described under Fixed. On an iPhone 12 Pro with 753 albums the peak footprint of a scroll went from 1,303 MB on a first launch to 781 MB once the disk was filled. The system may empty the Caches directory; the artwork is then rendered again.
