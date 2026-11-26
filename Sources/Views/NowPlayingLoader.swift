@@ -5,6 +5,16 @@ import MediaPlayer
     import UIKit
 #endif
 
+/// The time the loader spaces its reads by. Tests pass a clock they move by hand.
+struct LoaderClock: Sendable {
+    var now: @MainActor @Sendable () -> Date
+    var sleep: @MainActor @Sendable (TimeInterval) async throws -> Void
+
+    static let live = LoaderClock(
+        now: { Date() },
+        sleep: { try await Task.sleep(nanoseconds: UInt64($0 * 1_000_000_000)) })
+}
+
 @MainActor
 final class NowPlayingLoader: ObservableObject {
     @Published private(set) var song: Song?
@@ -28,6 +38,7 @@ final class NowPlayingLoader: ObservableObject {
     private let baseQueueGap: TimeInterval
     private let maximumQueueGap: TimeInterval
     private let seekSettleDelay: TimeInterval
+    private let clock: LoaderClock
 
     /// Reading the queue is a transaction on the player. If a transaction announced itself, each
     /// read would start the next, so reads are spaced out: at least `queueGap` apart, with the gap
@@ -38,11 +49,15 @@ final class NowPlayingLoader: ObservableObject {
     /// A device player can report the time from before a seek for a moment, and a seek posts no
     /// notification, so a seek publishes its target and reads the player again `seekSettleDelay`
     /// seconds later.
-    init(queueGap: TimeInterval = 0.5, maximumQueueGap: TimeInterval = 30, seekSettleDelay: TimeInterval = 0.5) {
+    init(
+        queueGap: TimeInterval = 0.5, maximumQueueGap: TimeInterval = 30, seekSettleDelay: TimeInterval = 0.5,
+        clock: LoaderClock = .live
+    ) {
         baseQueueGap = queueGap
         self.queueGap = queueGap
         self.maximumQueueGap = maximumQueueGap
         self.seekSettleDelay = seekSettleDelay
+        self.clock = clock
     }
 
     func isObserving(_ player: any MusicPlayerProtocol) -> Bool {
@@ -76,8 +91,8 @@ final class NowPlayingLoader: ObservableObject {
         refreshPlayback()
         position = PlaybackPosition(time: target, rate: position.rate)
         seekSettle?.cancel()
-        seekSettle = Task { [weak self, seekSettleDelay] in
-            try? await Task.sleep(nanoseconds: UInt64(seekSettleDelay * 1_000_000_000))
+        seekSettle = Task { [weak self, seekSettleDelay, clock] in
+            try? await clock.sleep(seekSettleDelay)
             guard !Task.isCancelled, let self else { return }
             seekSettle = nil
             refreshPlayback()
@@ -166,10 +181,10 @@ final class NowPlayingLoader: ObservableObject {
 
     private func queueDidChange() {
         guard !queueReadInFlight, trailingRead == nil else { return }
-        let wait = queueGap - Date().timeIntervalSince(queueReadFinished)
+        let wait = queueGap - clock.now().timeIntervalSince(queueReadFinished)
         guard wait > 0 else { return readQueue() }
-        trailingRead = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
+        trailingRead = Task { [weak self, clock] in
+            try? await clock.sleep(wait)
             guard !Task.isCancelled, let self else { return }
             trailingRead = nil
             readQueue()
@@ -184,7 +199,7 @@ final class NowPlayingLoader: ObservableObject {
             let songs = (try? await player.queuedSongs()) ?? nil
             guard !Task.isCancelled, let self else { return }
             queueReadInFlight = false
-            queueReadFinished = Date()
+            queueReadFinished = clock.now()
             let ids = songs?.map(\.id)
             queueGap = ids == queueIDs ? min(max(queueGap, 0.001) * 2, maximumQueueGap) : baseQueueGap
             queueIDs = ids

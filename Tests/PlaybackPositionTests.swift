@@ -305,77 +305,85 @@ struct PlaybackPositionTests {
     @Suite("Given a player whose queue read announces itself")
     @MainActor
     struct Echo {
-        @Test("When reading the queue posts a queue change, then the loader doesn't read forever")
-        func noLoop() async {
-            let player = EchoingPlayer()
-            let loader = NowPlayingLoader()
+        let clock = ManualClock()
+        let player = EchoingPlayer()
+
+        func loader(queueGap: TimeInterval = 1, maximumQueueGap: TimeInterval = 30) async -> NowPlayingLoader {
+            let loader = NowPlayingLoader(queueGap: queueGap, maximumQueueGap: maximumQueueGap, clock: clock.loaderClock)
             loader.update(player: player)
-            while loader.queue.isEmpty { await Task.yield() }
+            await settle()
+            return loader
+        }
 
-            for _ in 0..<200 { await Task.yield() }
+        @Test("When reading the queue posts a queue change, then the loader reads once more after the gap, not in a loop")
+        func noLoop() async {
+            let loader = await loader()
+            #expect(loader.queue.count == 1)
+            #expect(player.reads == 1)
 
-            // The first read, and at most a trailing one after the gap; never a loop.
-            #expect(player.reads <= 2)
+            await clock.advance(by: 1)
+
+            #expect(player.reads == 2)
         }
 
         @Test("When playback changes, then the queue isn't read again")
         func playbackDoesNotReadQueue() async {
-            let player = EchoingPlayer()
-            let loader = NowPlayingLoader()
-            loader.update(player: player)
-            while loader.queue.isEmpty { await Task.yield() }
+            let loader = await loader()
 
             for _ in 0..<5 {
                 NotificationCenter.default.post(name: .MPMusicPlayerControllerPlaybackStateDidChange, object: player)
                 NotificationCenter.default.post(name: .MPMusicPlayerControllerNowPlayingItemDidChange, object: player)
                 loader.seek(to: 10)
                 loader.setRepeatMode(.all)
-                for _ in 0..<20 { await Task.yield() }
+                await settle()
             }
 
-            #expect(player.reads <= 2)
+            #expect(player.reads == 1)
         }
 
         @Test("When the song changes, then the index follows without reading the queue again")
         func indexFollows() async {
-            let player = EchoingPlayer()
-            let loader = NowPlayingLoader()
-            loader.update(player: player)
-            while loader.queue.isEmpty { await Task.yield() }
+            let loader = await loader()
 
             player.indexOfNowPlayingItem = 4
             NotificationCenter.default.post(name: .MPMusicPlayerControllerNowPlayingItemDidChange, object: player)
-            while loader.queueIndex != 4 { await Task.yield() }
+            await settle()
 
-            #expect(player.reads <= 2)
+            #expect(loader.queueIndex == 4)
+            #expect(player.reads == 1)
         }
 
-        @Test("When reads keep finding the queue unchanged, then the gap between them grows")
-        func backsOff() async throws {
-            let player = EchoingPlayer()
-            let loader = NowPlayingLoader(queueGap: 0.01, maximumQueueGap: 0.2)
-            loader.update(player: player)
-            while loader.queue.isEmpty { await Task.yield() }
+        @Test("When reads keep finding the queue unchanged, then the gap between them doubles up to the maximum")
+        func backsOff() async {
+            let loader = await loader(queueGap: 1, maximumQueueGap: 4)
+            var readsAfterEachSecond: [Int] = []
 
-            try await Task.sleep(nanoseconds: 1_000_000_000)
+            for _ in 0..<12 {
+                await clock.advance(by: 1)
+                readsAfterEachSecond.append(player.reads)
+            }
 
-            // Gaps of .01, .02, .04, .08, .16, then .2 apiece: about 8 reads in a second, not ~100.
-            #expect(player.reads < 20)
+            // Reads at 0, then gaps of 1, 2, 4, 4: at seconds 1, 3, 7, 11.
+            #expect(readsAfterEachSecond == [2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5])
+            #expect(loader.queue.count == 1)
         }
 
-        @Test("When the queue really changes, then it is read again and the gap resets")
-        func realChange() async throws {
-            let player = EchoingPlayer()
-            let loader = NowPlayingLoader(queueGap: 0.01, maximumQueueGap: 0.2)
-            loader.update(player: player)
-            while loader.queue.isEmpty { await Task.yield() }
-            try await Task.sleep(nanoseconds: 300_000_000)
+        @Test("When the queue really changes, then it is read after the current gap and the gap resets")
+        func realChange() async {
+            let loader = await loader(queueGap: 1, maximumQueueGap: 8)
+            await clock.advance(by: 1)  // second read, unchanged: the gap is now 2
 
             player.songs = [StubMediaItem.song("A"), StubMediaItem.song("B")].map(Song.init)
             NotificationCenter.default.post(name: .MPMusicPlayerControllerQueueDidChange, object: player)
-            while loader.queue.count != 2 { await Task.yield() }
+            await clock.advance(by: 1)
+            #expect(loader.queue.count == 1)
 
+            await clock.advance(by: 1)
             #expect(loader.queue.count == 2)
+            #expect(player.reads == 3)
+
+            await clock.advance(by: 1)
+            #expect(player.reads == 4)
         }
     }
 
