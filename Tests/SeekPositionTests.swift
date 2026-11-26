@@ -41,11 +41,18 @@ final class LaggingPlayer: MusicPlayerProtocol {
 @Suite("Seek position (#98)")
 @MainActor
 struct SeekPositionTests {
+    let clock = ManualClock()
+    let player = LaggingPlayer()
+
+    func loader() -> NowPlayingLoader {
+        let loader = NowPlayingLoader(seekSettleDelay: 0.5, clock: clock.loaderClock)
+        loader.update(player: player)
+        return loader
+    }
+
     @Test("When the player still reports the old time after a seek, then the position is the target and keeps moving")
     func publishesTarget() {
-        let player = LaggingPlayer()
-        let loader = NowPlayingLoader(seekSettleDelay: 60)
-        loader.update(player: player)
+        let loader = loader()
 
         let before = Date()
         loader.seek(to: 120)
@@ -58,10 +65,8 @@ struct SeekPositionTests {
 
     @Test("When paused and the player lags, then the position is the target and stays there")
     func pausedTarget() {
-        let player = LaggingPlayer()
         player.playbackState = .paused
-        let loader = NowPlayingLoader(seekSettleDelay: 60)
-        loader.update(player: player)
+        let loader = loader()
 
         loader.seek(to: 45)
 
@@ -70,33 +75,29 @@ struct SeekPositionTests {
     }
 
     @Test("When the player has applied the seek, then the position settles on the player's real time")
-    func settles() async throws {
-        let player = LaggingPlayer()
-        let loader = NowPlayingLoader(seekSettleDelay: 0.01)
-        loader.update(player: player)
+    func settles() async {
+        let loader = loader()
 
         loader.seek(to: 120)
         player.applySeek(drift: 0.5)
+        await clock.advance(by: 0.4)
+        #expect(loader.position.time == 120)
 
-        for _ in 0..<400 {
-            if loader.position.time == 120.5 { break }
-            try await Task.sleep(nanoseconds: 5_000_000)
-        }
+        await clock.advance(by: 0.1)
         #expect(loader.position.time == 120.5)
     }
 
     @Test("When seeking again before the first seek settles, then the first seek's re-read doesn't overwrite the latest target")
-    func latestWins() async throws {
-        let player = LaggingPlayer()
-        let loader = NowPlayingLoader(seekSettleDelay: 0.5)
-        loader.update(player: player)
+    func latestWins() async {
+        let loader = loader()
 
         loader.seek(to: 30)
-        try await Task.sleep(nanoseconds: 250_000_000)
+        await clock.advance(by: 0.25)
         loader.seek(to: 90)
         // Past the first seek's settle time, before the second's; the player still reports 10.
-        try await Task.sleep(nanoseconds: 350_000_000)
+        await clock.advance(by: 0.35)
 
         #expect(loader.position.time == 90)
+        #expect(clock.pendingSleepers == 1)
     }
 }
