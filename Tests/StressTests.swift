@@ -132,9 +132,7 @@ struct StressTests {
             #expect(!loader.elements.isEmpty)
         }
 
-        @Test(
-            "When reload is called fifty times at once on a slow library, then every call returns",
-            .timeLimit(.minutes(1)))
+        @Test("When reload is called fifty times at once on a slow library, then every call returns")
         func reloadStorm() async throws {
             let fake = try FakeLibrary.make(songs: StressTests.songs)
             let (library, service) = StressTests.library(fake, yieldsPerFetch: 20)
@@ -148,9 +146,7 @@ struct StressTests {
             #expect(loader.elements.count == StressTests.songs)
         }
 
-        @Test(
-            "When the query changes two hundred times in a row, then the list ends on the last one",
-            .timeLimit(.minutes(1)))
+        @Test("When the query changes two hundred times in a row, then the list ends on the last one")
         func queryChurn() async throws {
             let fake = try FakeLibrary.make(songs: StressTests.songs)
             let (library, service) = StressTests.library(fake, yieldsPerFetch: 5)

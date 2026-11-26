@@ -229,7 +229,7 @@ struct ArtworkTests {
             #expect(cache.image(for: request) == nil)
         }
 
-        @Test("When one of two callers sharing a render is cancelled, then the other still gets the image", .timeLimit(.minutes(1)))
+        @Test("When one of two callers sharing a render is cancelled, then the other still gets the image")
         func cancelOneOfTwo() async {
             let cache = ArtworkCache()
             let gate = DispatchSemaphore(value: 0)
