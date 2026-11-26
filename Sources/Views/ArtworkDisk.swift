@@ -24,11 +24,12 @@
             byteLimit: Int = 64 << 20,
             pendingByteLimit: Int = 24 << 20,
             maxAge: TimeInterval = 30 * 24 * 60 * 60,
-            now: @escaping @Sendable () -> Date = { Date() }
+            now: @escaping @Sendable () -> Date = { Date() },
+            writeQueue: DispatchQueue = DispatchQueue(label: "MediaBridge.ArtworkDisk.write", qos: .utility)
         ) -> ArtworkDisk {
             let store = FileStore(
                 directory: directory, byteLimit: byteLimit, pendingByteLimit: pendingByteLimit,
-                maxAge: maxAge, now: now)
+                maxAge: maxAge, now: now, queue: writeQueue)
             return ArtworkDisk(load: { store.load($0) }, save: { store.save($0, for: $1) })
         }
     }
@@ -44,12 +45,13 @@
         /// faster than they are encoded; unbounded, the waiting images were 1.2 GB on a device.
         private var pendingBytes = 0
         /// One writer at a time: encoding thumbnails side by side would raise the peak footprint.
-        private let queue = DispatchQueue(label: "MediaBridge.ArtworkDisk.write", qos: .utility)
+        private let queue: DispatchQueue
 
         init(
             directory: URL, byteLimit: Int, pendingByteLimit: Int, maxAge: TimeInterval,
-            now: @escaping @Sendable () -> Date
+            now: @escaping @Sendable () -> Date, queue: DispatchQueue
         ) {
+            self.queue = queue
             self.maxAge = maxAge
             self.now = now
             self.directory = directory

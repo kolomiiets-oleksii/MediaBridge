@@ -118,6 +118,12 @@
             }
         }
 
+        /// Callers currently waiting on the render of `request`.
+        func waiterCount(for request: ArtworkRequest) -> Int {
+            guard let key = Self.key(for: request).map({ $0 as String }) else { return 0 }
+            return lock.withLock { flights[key]?.waiters ?? 0 }
+        }
+
         private final class Flight: @unchecked Sendable {
             var task: Task<UIImage?, Never>!
             var waiters = 1

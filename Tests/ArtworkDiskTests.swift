@@ -146,13 +146,9 @@ struct ArtworkDiskTests {
             FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         }
 
-        /// Writes happen on a background queue, so wait for the file to show up.
-        static func waitForLoad(_ disk: ArtworkDisk, _ request: ArtworkRequest) async -> UIImage? {
-            for _ in 0..<100 {
-                if let image = disk.load(request) { return image }
-                try? await Task.sleep(nanoseconds: 20_000_000)
-            }
-            return nil
+        /// Returns once every write queued so far has finished.
+        static func drain(_ writes: DispatchQueue) async {
+            await withCheckedContinuation { finished in writes.async { finished.resume() } }
         }
 
         static func image(side: CGFloat) -> UIImage {
@@ -169,20 +165,24 @@ struct ArtworkDiskTests {
             let directory = Self.temporaryDirectory()
             defer { try? FileManager.default.removeItem(at: directory) }
 
-            ArtworkDisk.live(directory: directory).save(Self.image(side: 64), ArtworkDiskTests.request(7))
+            let writes = DispatchQueue(label: "roundTrip.writes")
+            ArtworkDisk.live(directory: directory, writeQueue: writes).save(Self.image(side: 64), ArtworkDiskTests.request(7))
+            await Self.drain(writes)
             let reopened = ArtworkDisk.live(directory: directory)
 
-            #expect(await Self.waitForLoad(reopened, ArtworkDiskTests.request(7)) != nil)
+            #expect(reopened.load(ArtworkDiskTests.request(7)) != nil)
         }
 
         @Test("When an image is larger than the view needs, then it is stored at 3x the requested side")
         func scalesDown() async throws {
             let directory = Self.temporaryDirectory()
             defer { try? FileManager.default.removeItem(at: directory) }
-            let disk = ArtworkDisk.live(directory: directory)
+            let writes = DispatchQueue(label: "scalesDown.writes")
+            let disk = ArtworkDisk.live(directory: directory, writeQueue: writes)
 
             disk.save(Self.image(side: 1_170), ArtworkDiskTests.request(7))
-            let stored = try #require(await Self.waitForLoad(disk, ArtworkDiskTests.request(7)))
+            await Self.drain(writes)
+            let stored = try #require(disk.load(ArtworkDiskTests.request(7)))
 
             #expect(stored.size.width * stored.scale == 384)
         }
@@ -203,17 +203,17 @@ struct ArtworkDiskTests {
             let directory = Self.temporaryDirectory()
             defer { try? FileManager.default.removeItem(at: directory) }
             // One 64 px image is 16 KB decoded: room for exactly one waiting at a time.
-            let disk = ArtworkDisk.live(directory: directory, pendingByteLimit: 20_000)
+            let writes = DispatchQueue(label: "dropsOverThePendingLimit.writes")
+            let disk = ArtworkDisk.live(directory: directory, pendingByteLimit: 20_000, writeQueue: writes)
             let image = Self.image(side: 64)
 
+            writes.suspend()
             for id in 1...20 { disk.save(image, ArtworkDiskTests.request(UInt64(id))) }
-            // The first one was accepted: wait for it, then for any others the writer got to.
-            _ = await Self.waitForLoad(disk, ArtworkDiskTests.request(1))
-            try await Task.sleep(nanoseconds: 300_000_000)
+            writes.resume()
+            await Self.drain(writes)
 
             let saved = (1...20).filter { disk.load(ArtworkDiskTests.request(UInt64($0))) != nil }
-            #expect(saved.count >= 1)
-            #expect(saved.count < 20)
+            #expect(saved == [1])
         }
 
         @Test("When a stored image is older than the maximum age, then it is removed and load returns nothing")
@@ -223,8 +223,9 @@ struct ArtworkDiskTests {
             let day: TimeInterval = 24 * 60 * 60
             let written = Date()
             let request = ArtworkDiskTests.request(7)
-            ArtworkDisk.live(directory: directory).save(Self.image(side: 64), request)
-            _ = await Self.waitForLoad(ArtworkDisk.live(directory: directory), request)
+            let writes = DispatchQueue(label: "expires.writes")
+            ArtworkDisk.live(directory: directory, writeQueue: writes).save(Self.image(side: 64), request)
+            await Self.drain(writes)
 
             let young = ArtworkDisk.live(directory: directory, maxAge: 30 * day, now: { written.addingTimeInterval(29 * day) })
             #expect(young.load(request) != nil)
@@ -239,19 +240,18 @@ struct ArtworkDiskTests {
             let directory = Self.temporaryDirectory()
             defer { try? FileManager.default.removeItem(at: directory) }
             // Probe the size of one file, then allow exactly that much.
-            let probe = ArtworkDisk.live(directory: directory)
+            let writes = DispatchQueue(label: "trims.writes")
+            let probe = ArtworkDisk.live(directory: directory, writeQueue: writes)
             probe.save(Self.image(side: 64), ArtworkDiskTests.request(1))
-            _ = await Self.waitForLoad(probe, ArtworkDiskTests.request(1))
+            await Self.drain(writes)
             let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.fileSizeKey])
-            let oneFile = try #require(try files.first?.resourceValues(forKeys: [.fileSizeKey]).fileSize)
-            let disk = ArtworkDisk.live(directory: directory, byteLimit: oneFile)
-            try await Task.sleep(nanoseconds: 50_000_000)
+            let first = try #require(files.first)
+            let oneFile = try #require(try first.resourceValues(forKeys: [.fileSizeKey]).fileSize)
+            try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSinceNow: -60)], ofItemAtPath: first.path)
+            let disk = ArtworkDisk.live(directory: directory, byteLimit: oneFile, writeQueue: writes)
 
             disk.save(Self.image(side: 64), ArtworkDiskTests.request(2))
-            _ = await Self.waitForLoad(disk, ArtworkDiskTests.request(2))
-            for _ in 0..<100 where disk.load(ArtworkDiskTests.request(1)) != nil {
-                try await Task.sleep(nanoseconds: 20_000_000)
-            }
+            await Self.drain(writes)
 
             #expect(disk.load(ArtworkDiskTests.request(1)) == nil)
             #expect(disk.load(ArtworkDiskTests.request(2)) != nil)
