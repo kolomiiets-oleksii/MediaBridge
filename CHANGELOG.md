@@ -5,7 +5,7 @@ All notable changes to MediaBridge are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.10.1] - Unreleased
+## [1.10.1] - 2026-11-26
 ### Fixed
 - After `seek(to:)`, `@NowPlaying`'s `song.position` could jump back to the time before the seek. On a device `MPMusicPlayerController` can still report the old `currentPlaybackTime` right after a seek, and a seek posts no notification, so a progress bar snapped back. A seek now publishes its target at the player's current rate and reads the player again 0.5 s later; a newer seek cancels the pending re-read. (#98)
 - Artwork stored on disk by `ArtworkImage` was shown forever, even after the user changed an album's artwork in the library. A file older than 30 days is now removed instead of read, and the album is rendered through MediaPlayer again. (#94)
