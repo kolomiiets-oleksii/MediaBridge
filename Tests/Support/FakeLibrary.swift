@@ -233,24 +233,30 @@ final class FakeLibrary: @unchecked Sendable {
     }
 }
 
-/// A service that serves the fake library, can be slow, and counts requests and overlap.
+/// A service that serves the fake library, can hand the thread to other work mid-fetch so fetches
+/// overlap, and counts requests and overlap.
 final class FakeLibraryService: MusicLibraryServiceProtocol, @unchecked Sendable {
     private let lock = NSLock()
     private let library: FakeLibrary
-    private let latency: TimeInterval
+    private let yieldsPerFetch: Int
     private let reloadsOnEachFetch: Bool
     private var requests = 0
     private var running = 0
     private var peak = 0
 
-    init(_ library: FakeLibrary, latency: TimeInterval = 0, reloadsOnEachFetch: Bool = false) {
+    init(_ library: FakeLibrary, yieldsPerFetch: Int = 0, reloadsOnEachFetch: Bool = false) {
         self.library = library
-        self.latency = latency
+        self.yieldsPerFetch = yieldsPerFetch
         self.reloadsOnEachFetch = reloadsOnEachFetch
     }
 
     var requestCount: Int { lock.withLock { requests } }
     var peakConcurrentFetches: Int { lock.withLock { peak } }
+
+    /// Returns once no fetch is running. No time passes.
+    func untilIdle() async {
+        while lock.withLock({ running }) > 0 { await Task.yield() }
+    }
 
     private var cached: [MPMediaItem]?
 
@@ -261,7 +267,7 @@ final class FakeLibraryService: MusicLibraryServiceProtocol, @unchecked Sendable
             peak = max(peak, running)
         }
         defer { lock.withLock { running -= 1 } }
-        if latency > 0 { try await Task.sleep(nanoseconds: UInt64(latency * 1_000_000_000)) }
+        for _ in 0..<yieldsPerFetch { await Task.yield() }
         if reloadsOnEachFetch { return try library.load() }
         return try lock.withLock {
             if let cached { return cached }

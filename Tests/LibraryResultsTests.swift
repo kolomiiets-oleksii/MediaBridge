@@ -84,16 +84,22 @@ struct LibraryResultsTests {
     }
 
     @Test("When changes come in a burst, then they cause one refetch")
-    func coalesces() async throws {
-        let changes = CountingChanges()
+    @MainActor
+    func coalesces() async {
+        let changes = PulledChanges()
+        let clock = ManualClock()
         let service = MockMusicLibraryService()
         let library = MusicLibrary(auth: .mock, service: service, changes: changes)
-        var results = library.results(.songs, coalescing: 0.05).makeAsyncIterator()
+        var results = library.results(.songs, coalescing: 0.05, sleep: clock.loaderClock.sleep).makeAsyncIterator()
         _ = await results.next()
 
-        for _ in 0..<5 { changes.fire() }
+        changes.fire()
+        await clock.untilSleeping()
+        changes.fire(times: 4)
+        await changes.untilHandled(5)
+        await clock.advance(by: 0.05)
         _ = await results.next()
-        try await Task.sleep(nanoseconds: 200_000_000)
+        await clock.untilSleeping()
 
         #expect(service.requests.count == 2)
     }

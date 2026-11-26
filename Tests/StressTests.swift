@@ -25,30 +25,10 @@ struct StressTests {
         return value
     }
 
-    /// True if `body` finishes within `seconds`. A body that never returns is abandoned, not awaited.
-    static func finishes(within seconds: Double, _ body: @escaping @MainActor @Sendable () async -> Void) async -> Bool {
-        final class Once: @unchecked Sendable {
-            let lock = NSLock()
-            var done = false
-            func claim() -> Bool { lock.withLock { defer { done = true }; return !done } }
-        }
-        let once = Once()
-        return await withCheckedContinuation { continuation in
-            Task {
-                await body()
-                if once.claim() { continuation.resume(returning: true) }
-            }
-            Task {
-                try? await Task.sleep(nanoseconds: UInt64(seconds * 1e9))
-                if once.claim() { continuation.resume(returning: false) }
-            }
-        }
-    }
-
     static func library(
-        _ fake: FakeLibrary, latency: TimeInterval = 0, reloading: Bool = false, changes: any LibraryChangesProtocol = CountingChanges()
+        _ fake: FakeLibrary, yieldsPerFetch: Int = 0, reloading: Bool = false, changes: any LibraryChangesProtocol = CountingChanges()
     ) -> (MusicLibrary, FakeLibraryService) {
-        let service = FakeLibraryService(fake, latency: latency, reloadsOnEachFetch: reloading)
+        let service = FakeLibraryService(fake, yieldsPerFetch: yieldsPerFetch, reloadsOnEachFetch: reloading)
         return (MusicLibrary(auth: .mock, service: service, changes: changes), service)
     }
 
@@ -152,55 +132,55 @@ struct StressTests {
             #expect(!loader.elements.isEmpty)
         }
 
-        @Test("When reload is called fifty times at once on a slow library, then every call returns")
+        @Test(
+            "When reload is called fifty times at once on a slow library, then every call returns",
+            .timeLimit(.minutes(1)))
         func reloadStorm() async throws {
             let fake = try FakeLibrary.make(songs: StressTests.songs)
-            let (library, service) = StressTests.library(fake, latency: 0.03)
+            let (library, service) = StressTests.library(fake, yieldsPerFetch: 20)
             let loader = MediaQueryLoader<Song>()
             loader.update(query: .songs.sorted(by: \.title), library: library)
 
-            let finished = await StressTests.finishes(within: 20) { @MainActor in
-                let tasks = (0..<50).map { _ in Task { @MainActor in await loader.reload() } }
-                for task in tasks { await task.value }
-            }
-            #expect(finished, "a reload never returned: its waiter was lost")
+            let tasks = (0..<50).map { _ in Task { @MainActor in await loader.reload() } }
+            for task in tasks { await task.value }
             print("STRESS|fetches started for 50 concurrent reload()|n=\(StressTests.songs)|\(service.requestCount)")
             print("STRESS|peak overlapping fetches|n=\(StressTests.songs)|\(service.peakConcurrentFetches)")
             #expect(loader.elements.count == StressTests.songs)
         }
 
-        @Test("When the query changes two hundred times in a row, then the list ends on the last one")
+        @Test(
+            "When the query changes two hundred times in a row, then the list ends on the last one",
+            .timeLimit(.minutes(1)))
         func queryChurn() async throws {
             let fake = try FakeLibrary.make(songs: StressTests.songs)
-            let (library, service) = StressTests.library(fake, latency: 0.005)
+            let (library, service) = StressTests.library(fake, yieldsPerFetch: 5)
             let loader = MediaQueryLoader<Song>()
             for limit in 1...200 { loader.update(query: .songs.limit(limit), library: library) }
-            let finished = await StressTests.finishes(within: 20) { @MainActor in await loader.settle() }
-            #expect(finished)
-            try await Task.sleep(nanoseconds: 200 * 1_000_000)
+            await loader.settle()
+            await service.untilIdle()
+            await settle()
             #expect(loader.elements.count == 200, "list shows a stale query's result: \(loader.elements.count)")
             print("STRESS|fetches started for 200 query changes|n=\(StressTests.songs)|\(service.requestCount)")
         }
 
-        @Test("When the library reports a burst of two hundred changes fired at once, then it refetches only a few times")
+        @Test("When the library reports a burst of two hundred changes fired at once, then it refetches once")
         func changeStorm() async throws {
             let fake = try FakeLibrary.make(songs: StressTests.songs)
-            let changes = CountingChanges()
+            let changes = PulledChanges()
+            let clock = ManualClock()
             let (library, service) = StressTests.library(fake, changes: changes)
-            let collector = Task { () -> Int in
-                var published = 0
-                for await _ in library.results(.songs.sorted(by: \.title), coalescing: 0.05) {
-                    published += 1
-                    if published >= 50 { break }
-                }
-                return published
-            }
-            try await Task.sleep(nanoseconds: 300 * 1_000_000)
-            for _ in 0..<200 { changes.fire() }
-            try await Task.sleep(nanoseconds: 600 * 1_000_000)
-            collector.cancel()
+            var results = library.results(.songs.sorted(by: \.title), coalescing: 0.05, sleep: clock.loaderClock.sleep)
+                .makeAsyncIterator()
+            _ = await results.next()
+
+            changes.fire(times: 200)
+            await changes.untilHandled(200)
+            await clock.untilSleeping()
+            await clock.advance(by: 0.05)
+            _ = await results.next()
+
             print("STRESS|refetches for 200 changes fired at once|n=\(StressTests.songs)|\(service.requestCount - 1)")
-            #expect(service.requestCount - 1 <= 10)
+            #expect(service.requestCount - 1 == 1)
         }
 
         @Test("When every refetch returns new item instances, then the list still ends consistent")

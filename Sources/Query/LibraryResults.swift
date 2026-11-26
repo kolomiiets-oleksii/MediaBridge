@@ -29,9 +29,17 @@ extension MusicLibraryProtocol {
         _ query: LibraryQuery<Element>,
         coalescing interval: TimeInterval = 0.3
     ) -> AsyncStream<Result<[Element], MusicLibraryError>> {
+        results(query, coalescing: interval, sleep: { try await Task.sleep(nanoseconds: UInt64(max($0, 0) * 1_000_000_000)) })
+    }
+
+    func results<Element: LibraryElement>(
+        _ query: LibraryQuery<Element>,
+        coalescing interval: TimeInterval,
+        sleep: @escaping @Sendable (TimeInterval) async throws -> Void
+    ) -> AsyncStream<Result<[Element], MusicLibraryError>> {
         let (stream, continuation) = AsyncStream<Result<[Element], MusicLibraryError>>.makeStream(
             bufferingPolicy: .bufferingNewest(1))
-        let feed = ResultsFeed(library: self, query: query, interval: interval, continuation: continuation)
+        let feed = ResultsFeed(library: self, query: query, interval: interval, sleep: sleep, continuation: continuation)
         let task = Task { await feed.run() }
         continuation.onTermination = { _ in task.cancel() }
         return stream
@@ -42,6 +50,7 @@ private struct ResultsFeed<Library: MusicLibraryProtocol, Element: LibraryElemen
     let library: Library
     let query: LibraryQuery<Element>
     let interval: TimeInterval
+    let sleep: @Sendable (TimeInterval) async throws -> Void
     let continuation: AsyncStream<Result<[Element], MusicLibraryError>>.Continuation
 
     func run() async {
@@ -62,7 +71,7 @@ private struct ResultsFeed<Library: MusicLibraryProtocol, Element: LibraryElemen
         }
 
         for await _ in triggers {
-            try? await Task.sleep(nanoseconds: UInt64(max(interval, 0) * 1_000_000_000))
+            try? await sleep(interval)
             guard !Task.isCancelled else { return }
             // Changes that landed while we waited were already folded into this count.
             guard tally.count != handled else { continue }

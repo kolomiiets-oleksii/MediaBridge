@@ -77,16 +77,17 @@ struct LibraryChangesTests {
         }
 
         @Test("When it is a preview, then changes never ends on its own")
+        @MainActor
         func previewStaysOpen() async {
             let library: MusicLibrary = .accessAuthorized
-            let task = Task { () -> Bool in
-                for await _ in library.changes { return true }
-                return false
+            let task = Task { @MainActor () -> Bool in
+                for await _ in library.changes {}
+                return Task.isCancelled
             }
-            try? await Task.sleep(nanoseconds: 50_000_000)
+            await settle()
             task.cancel()
 
-            #expect(await task.value == false)
+            #expect(await task.value)
         }
     }
 }
