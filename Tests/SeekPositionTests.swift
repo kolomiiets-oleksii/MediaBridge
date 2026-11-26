@@ -78,8 +78,8 @@ struct SeekPositionTests {
         loader.seek(to: 120)
         player.applySeek(drift: 0.5)
 
-        let deadline = Date().addingTimeInterval(2)
-        while loader.position.time != 120.5, Date() < deadline {
+        for _ in 0..<400 {
+            if loader.position.time == 120.5 { break }
             try await Task.sleep(nanoseconds: 5_000_000)
         }
         #expect(loader.position.time == 120.5)
