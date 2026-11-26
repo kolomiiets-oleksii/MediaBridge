@@ -20,6 +20,11 @@ final class ManualClock {
 
     var pendingSleepers: Int { sleepers.count }
 
+    /// Returns once `count` sleepers are waiting. No time passes.
+    func untilSleeping(_ count: Int = 1) async {
+        while sleepers.count < count { await Task.yield() }
+    }
+
     /// Lets work already started reach its sleep, moves time forward, wakes every sleeper that is
     /// now due, and lets the woken work run.
     func advance(by seconds: TimeInterval) async {
