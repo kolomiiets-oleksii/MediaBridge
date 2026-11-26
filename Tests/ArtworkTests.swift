@@ -229,7 +229,7 @@ struct ArtworkTests {
             #expect(cache.image(for: request) == nil)
         }
 
-        @Test("When one of two callers sharing a render is cancelled, then the other still gets the image")
+        @Test("When one of two callers sharing a render is cancelled, then the other still gets the image", .timeLimit(.minutes(1)))
         func cancelOneOfTwo() async {
             let cache = ArtworkCache()
             let gate = DispatchSemaphore(value: 0)
@@ -242,9 +242,7 @@ struct ArtworkTests {
 
             let cancelled = Task { await cache.render(Self.request, with: render) }
             let kept = Task { await cache.render(Self.request, with: render) }
-            while renders.value == 0 { try? await Task.sleep(nanoseconds: 5_000_000) }
-            // Let the second caller join the running render before the first one leaves.
-            try? await Task.sleep(nanoseconds: 100_000_000)
+            while renders.value == 0 || cache.waiterCount(for: Self.request) < 2 { await Task.yield() }
             cancelled.cancel()
             gate.signal()
 
