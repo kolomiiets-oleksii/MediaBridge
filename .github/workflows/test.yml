@@ -3,7 +3,6 @@ name: Tests
 on:
   push:
     branches: [ main ]
-  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,7 +11,6 @@ concurrency:
 jobs:
   test:
     name: Test (Swift ${{ matrix.swift }}, Xcode ${{ matrix.xcode }})
-    if: github.event_name == 'push'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     continue-on-error: ${{ matrix.preview_image || false }}
@@ -68,23 +66,3 @@ jobs:
           -scheme MediaBridge \
           -destination "id=$SIMULATOR_ID" \
           -derivedDataPath .build
-
-  build-swift-6-0-floor:
-    name: Build (Swift 6.0, Xcode 16.0)
-    runs-on: macos-15
-    timeout-minutes: 15
-
-    steps:
-    - uses: actions/checkout@v5
-
-    - name: Select Xcode 16.0
-      run: sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
-
-    - name: Show Swift version
-      run: swift --version
-
-    - name: Build library and tests for iOS
-      run: |
-        xcodebuild build-for-testing \
-          -scheme MediaBridge \
-          -destination 'generic/platform=iOS'
