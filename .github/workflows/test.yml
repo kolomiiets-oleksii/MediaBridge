@@ -3,6 +3,7 @@ name: Tests
 on:
   push:
     branches: [ main ]
+  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -11,6 +12,7 @@ concurrency:
 jobs:
   test:
     name: Test (Swift ${{ matrix.swift }}, Xcode ${{ matrix.xcode }})
+    if: github.event_name == 'push'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     continue-on-error: ${{ matrix.preview_image || false }}
