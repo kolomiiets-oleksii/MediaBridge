@@ -7,3 +7,12 @@ DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
 .swiftpm
+.build-*
+.team/out/logs/
+.team/logs/transcripts/
+.team/logs/tools.tsv
+.team/logs/runs.tsv
+.team/APPROVED
+.team/HANDOFF.md
+.team/HANDOFF.used.md
+.claude/worktrees/
